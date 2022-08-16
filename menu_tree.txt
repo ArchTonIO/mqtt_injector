@@ -1,0 +1,45 @@
+home
+|
+|-wireless_tools
+|   |
+|   |-wifi_connect
+|   |-wifi_disconnect
+|   |-wifi_scan
+|   |-wifi_status
+|   |-wifi_config
+|   |-wifi_config_save
+|   |-back
+|
+|-mqtt_tools
+|   |
+|   |-mqtt_connect
+|   |-mqtt_publish
+|   |-mqtt_subscribe
+|   |-mqtt_status
+|   |-mqtt_config
+|   |-mqtt_config_save
+|   |-back
+|
+|-sensors
+|   |
+|   |-all_sensors
+|   |-sensors_status
+|   |-sensors_shit2
+|   |-sensors_shit3
+|   |-sensors_shit4
+|   |-sensors_shit5
+|   |-back
+|
+|-config
+|   |
+|   |-config_shit0
+|   |-config_shit1
+|   |-config_shit2
+|   |-config_shit3
+|   |-config_shit4
+|   |-config_shit5
+|   |-back
+|
+|-hardware_check
+|
+|-back
