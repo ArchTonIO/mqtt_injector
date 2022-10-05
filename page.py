@@ -7,6 +7,7 @@ class page():
         self.options_lines=[str()]*self.MAX_LINES
         self.page_lines=[str()]*self.MAX_LINES
         self.page_id=int()
+        self.is_leaf=bool()
 
     def build_page(self, curors_at_screen_border=False) -> None:
         for i in range(len(self.options_lines)):

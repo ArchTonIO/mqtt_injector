@@ -10,7 +10,7 @@
 #   https://github.com/MikeTeachman/micropython-rotary
 
 from machine import Pin
-from rotary import Rotary
+from rotary.rotary import Rotary
 
 IRQ_RISING_FALLING = Pin.IRQ_RISING | Pin.IRQ_FALLING
 
