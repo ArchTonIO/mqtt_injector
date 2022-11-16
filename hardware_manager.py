@@ -12,7 +12,7 @@ class h_man:
                         pin_num_dt=13,
                         min_val=0,
                         max_val=24,
-                        reverse=True,
+                        reverse=False,
                         range_mode=RotaryIRQ.RANGE_WRAP,
                         pull_up=True)
     select_button=Pin(14, Pin.IN, Pin.PULL_UP)
