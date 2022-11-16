@@ -6,9 +6,9 @@ class command_executer():
     def __init__(self):
         self.wlan=wlan_manager()
         self.commands={
-            (1, 0): "wlan status",
-            (1, 1): "wlan connect",
-            (1, 2): "wlan scan",
+            (1, 0): "wlan scan",
+            (1, 1): "wlan status",
+            (1, 2): "wlan connect",
             5: "wlan insert password"
         }
 
