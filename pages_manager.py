@@ -48,8 +48,8 @@ class pages_manager():
         display_lines=self.target_page.page_lines[line_increment:line_increment+6]
         raw_counter=int()
         for line in display_lines:
-                self.oled.text(line, 0, raw_counter)
-                raw_counter+=spacing
+            self.oled.text(line, 0, raw_counter)
+            raw_counter+=spacing
         self.oled.show()
 
     def __action(self) -> None:
@@ -65,7 +65,6 @@ class pages_manager():
     def __change_page(self) -> None:
         if self.target_page==self.pages[0]:
             self.target_page=self.pages[self.actual_encoder_value+1]
-            print("should display", self.pages[self.actual_encoder_value+1].options_lines)
         elif (self.target_page.id, self.actual_encoder_value) in self.back_positions:
             self.target_page=self.pages[0]
         self.target_page.build_page()
@@ -83,6 +82,5 @@ class pages_manager():
             self.target_page.build_page()
             if self.actual_encoder_value!=last_encoder_value:
                 self.__display_page()
-                print(self.rotary_encoder.value())
             if not self.select_button.value():
                 self.__action()
