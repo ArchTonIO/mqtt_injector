@@ -3,7 +3,7 @@ from hardware_manager import h_man
 
 class mqtt_injector():
 	def __init__(self):
-
+		h_man.startup_sequence()
 		self.pages_manager=pages_manager(h_man.oled,
 											h_man.encoder,
 											h_man.select_button)
@@ -20,6 +20,7 @@ class mqtt_injector():
 									entries=["wlan status",
 									"wlan connect",
 									"wlan scan",
+									"wlan save connection",
 									"back"])
 		self.pages_manager.add_page(page_id=2,
 									leaf_attr=True,
@@ -44,4 +45,5 @@ class mqtt_injector():
 									"back"])
 		self.pages_manager.loop()
 
-device=mqtt_injector()
+if __name__ == "__main__":
+	mqtt_injector()

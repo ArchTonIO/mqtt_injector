@@ -43,13 +43,13 @@ class command_executer():
                 conn_data=self.wlan.status()["ifconfig"]
                 if connected:
                     h_man.oled.text("wlan connected", 0, 0)
-                    h_man.oled.text("ip: "+conn_data[0], 0, 11)
-                    h_man.oled.text("mask: "+conn_data[1], 0, 22)
-                    h_man.oled.text("gateway: "+conn_data[2], 0, 33)
+                    h_man.oled.text("ip:"+conn_data[0], 0, 11)
+                    h_man.oled.text("msk:"+conn_data[1], 0, 22)
+                    h_man.oled.text("gate:"+conn_data[2], 0, 33)
                     h_man.oled.show()
                     timer=5
                     while timer>0:
-                        h_man.oled.text("homepage in ...", 0, 44)
+                        h_man.oled.fill_rect(0, 44, 128, 8, 0)
                         h_man.oled.text("homepage in"+str(timer)+"...", 0, 44)
                         h_man.oled.show()
                         sleep(1)
@@ -60,7 +60,7 @@ class command_executer():
                     h_man.oled.text("wlan not connected", 0, 0)
                     timer=5
                     while timer>0:
-                        h_man.oled.text("homepage in ...", 0, 44)
+                        h_man.oled.fill_rect(0, 11, 128, 8, 0)
                         h_man.oled.text("homepage in"+str(timer)+"...", 0, 44)
                         h_man.oled.show()
                         sleep(1)
@@ -85,4 +85,3 @@ class command_executer():
                     sleep(2)
                     pages_manager.target_page=pages_manager.pages[0]
                     pages_manager.__display_page()
-        
