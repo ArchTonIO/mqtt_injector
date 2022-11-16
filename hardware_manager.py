@@ -15,8 +15,8 @@ class h_man:
                         reverse=True,
                         range_mode=RotaryIRQ.RANGE_WRAP,
                         pull_up=True)
-    select_button=Pin(16, Pin.IN, Pin.PULL_UP)
-    fast_button=Pin(14, Pin.IN, Pin.PULL_UP)
+    select_button=Pin(14, Pin.IN, Pin.PULL_UP)
+    fast_button=Pin(16, Pin.IN, Pin.PULL_UP)
     leds_list=[
         Pin(28, Pin.OUT),
         Pin(27, Pin.OUT),

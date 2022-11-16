@@ -1,49 +1,75 @@
-from pages_manager import pages_manager
 from hardware_manager import h_man
+from pages_manager import pages_manager
+import _thread
 
-class mqtt_injector():
-	def __init__(self):
-		h_man.startup_sequence()
-		self.pages_manager=pages_manager(h_man.oled,
-											h_man.encoder,
-											h_man.select_button)
-		self.pages_manager.add_page(page_id=0,
-									entries=["wlan_tools",
-									"mqtt_tools",
-									"sensors",
-									"config",
-									"hardware_check",
-									"back",
-									"screen off"])
-		self.pages_manager.add_page(page_id=1,
-									leaf_attr=True,
-									entries=["wlan status",
-									"wlan connect",
-									"wlan scan",
-									"wlan save connection",
-									"back"])
-		self.pages_manager.add_page(page_id=2,
-									leaf_attr=True,
-									entries=["mqtt status",
-									"mqtt set_broker",
-									"mqtt subscribe",
-									"mqtt publish",
-									"back"])
-		self.pages_manager.add_page(page_id=3,
-									leaf_attr=True, 
-									entries=["slot 1",
-									"slot 2",
-									"slot 3",
-									"slot 4",
-									"slot 5",
-									"back"])
-		self.pages_manager.add_page(page_id=4,
-									leaf_attr=True,
-									entries=["save config",
-									"load config",
-									"read log",
-									"back"])
-		self.pages_manager.loop()
-
-if __name__ == "__main__":
-	mqtt_injector()
+_thread.start_new_thread(h_man.startup_sequence, ())
+#h_man.startup_sequence()
+pages_man=pages_manager(
+					h_man.oled,
+					h_man.encoder,
+					h_man.select_button
+					)
+pages_man.add_page(page_id=0,
+					entries=[
+					"wlan tools",
+					"ble tools",
+					"mqtt tools",
+					"sd card tools",
+					"config",
+					"hardware check",
+					"screen off"
+					"back"
+					])
+pages_man.add_page(page_id=1,
+					leaf_attr=True,
+					entries=[
+					"wlan scan",
+					"wlan status",
+					"wlan connect",
+					"back"
+					])
+pages_man.add_page(page_id=2,
+					leaf_attr=True,
+					entries=[
+					"ble status",
+					"ble scan",
+					"ble connect",
+					"back"
+					])
+pages_man.add_page(page_id=3,
+					leaf_attr=True,
+					entries=[
+					"mqtt status",
+					"mqtt set brokr",
+					"mqtt subscribe",
+					"mqtt publish",
+					"fast publish"
+					"back"
+					])
+pages_man.add_page(page_id=4,
+					leaf_attr=True, 
+					entries=[
+					"mount card",
+					"umount card",
+					"read log",
+					"write code",
+					"excecute code",
+					"navigate fs",
+					"back"
+					])
+pages_man.add_page(page_id=5,
+					leaf_attr=True,
+					entries=[
+					"boot hw check",
+					"boot animation",
+					"error recovery",
+					"led brightness",
+					"oled brightnes",
+					"oled contrast",
+					"rverse encoder",
+					"save to flash",
+					"available sram",
+					"availble flash",
+					"back"
+					])
+pages_man.loop()
