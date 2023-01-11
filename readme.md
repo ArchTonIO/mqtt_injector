@@ -3,10 +3,22 @@ An embedded device to control mqtt devices connected to a wireless network
 
 The very frist usage of this device is simply to connect to an mqtt broker and perform
 subscription and publishing on that, used to control different connected IoT devices.
+
 Also because I'm a freakin geek fan of cyberpunk aesthetic I decided to give the project
 some other functionallity in order to:
+
 - fill up the raspberry pi pico w available GPIOs
 - write a lot of disorganized python code
+
+I'm currently working to a companion app for android (written in python obv)
+
+to connect via bluetooth to the device and also give it some sort-of-smartwatch
+
+functionalities, given that this is a wearable device.
+
+The phone-side code will probabily be published in another repo to not mess up
+
+the micropython code.
 
 ****HARDWARE****
 - The MCU is a Raspberry Pi Pico W (RP2040).
