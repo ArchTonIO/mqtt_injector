@@ -11,13 +11,10 @@ some other functionallity in order to:
 - write a lot of disorganized python code
 
 I'm currently working to a companion app for android (written in python obv)
-
 to connect via bluetooth to the device and also give it some sort-of-smartwatch
-
 functionalities, given that this is a wearable device.
 
 The phone-side code will probabily be published in another repo to not mess up
-
 the micropython code.
 
 ****HARDWARE****
