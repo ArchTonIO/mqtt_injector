@@ -1,3 +1,4 @@
+"""
 # The MIT License (MIT)
 # Copyright (c) 2022 Mike Teachman
 # https://opensource.org/licenses/MIT
@@ -6,7 +7,8 @@
 
 # Documentation:
 #   https://github.com/MikeTeachman/micropython-rotary
-
+"""
+# pylint: disable=all
 import micropython
 
 _DIR_CW = const(0x10)  # Clockwise step
@@ -55,7 +57,7 @@ def _wrap(value, incr, lower_bound, upper_bound):
     value = value + incr
 
     if value < lower_bound:
-        value += range * ((lower_bound - value) // range + 1)
+        value = lower_bound
 
     return lower_bound + (value - lower_bound) % range
 
@@ -75,7 +77,15 @@ class Rotary(object):
     RANGE_WRAP = const(2)
     RANGE_BOUNDED = const(3)
 
-    def __init__(self, min_val, max_val, reverse, range_mode, half_step, invert):
+    def __init__(
+        self,
+        min_val,
+        max_val,
+        reverse,
+        range_mode,
+        half_step,
+        invert
+    ):
         self._min_val = min_val
         self._max_val = max_val
         self._reverse = -1 if reverse else 1
@@ -115,23 +125,31 @@ class Rotary(object):
     def close(self):
         self._hal_close()
 
-    def add_listener(self, l):
-        self._listener.append(l)
+    def add_listener(self, listener):
+        self._listener.append(listener)
 
-    def remove_listener(self, l):
-        if l not in self._listener:
-            raise ValueError('{} is not an installed listener'.format(l))
-        self._listener.remove(l)
-        
+    def remove_listener(self, listener):
+        if listener not in self._listener:
+            raise ValueError(
+                '{} is not an installed listener'.format(listener)
+            )
+        self._listener.remove(listener)
+
     def _process_rotary_pins(self, pin):
         old_value = self._value
-        clk_dt_pins = (self._hal_get_clk_value() << 1) | self._hal_get_dt_value()
+        clk_dt_pins = (
+            (self._hal_get_clk_value() << 1) | self._hal_get_dt_value()
+        )
         if self._invert:
             clk_dt_pins = ~clk_dt_pins & 0x03
-            
+
         # Determine next state
         if self._half_step:
-            self._state = _transition_table_half_step[self._state & _STATE_MASK][clk_dt_pins]
+            self._state = (
+                _transition_table_half_step(
+                    [self._state & _STATE_MASK][clk_dt_pins]
+                )
+            )
         else:
             self._state = _transition_table[self._state &
                                             _STATE_MASK][clk_dt_pins]
@@ -163,5 +181,5 @@ class Rotary(object):
         try:
             if old_value != self._value and len(self._listener) != 0:
                 micropython.schedule(_trigger, self)
-        except:
+        except Exception:
             pass

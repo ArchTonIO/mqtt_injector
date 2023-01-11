@@ -1,3 +1,4 @@
+"""
 # The MIT License (MIT)
 # Copyright (c) 2020 Mike Teachman
 # Copyright (c) 2021 Eric Moyer
@@ -8,14 +9,23 @@
 
 # Documentation:
 #   https://github.com/MikeTeachman/micropython-rotary
-
+"""
+# pylint: disable=import-error
+# pylint: disable=no-name-in-module
+# pylint: disable=too-few-public-methods
+# pylint: disable=too-many-arguments
 from machine import Pin
+
 from rotary.rotary import Rotary
 
 IRQ_RISING_FALLING = Pin.IRQ_RISING | Pin.IRQ_FALLING
 
 
 class RotaryIRQ(Rotary):
+    """
+    Class to read the state of a rotary encoder
+    connected to a Raspberry Pi Pico.
+    """
     def __init__(
         self,
         pin_num_clk,
@@ -28,7 +38,14 @@ class RotaryIRQ(Rotary):
         half_step=False,
         invert=False,
     ):
-        super().__init__(min_val, max_val, reverse, range_mode, half_step, invert)
+        super().__init__(
+            min_val,
+            max_val,
+            reverse,
+            range_mode,
+            half_step,
+            invert
+        )
 
         if pull_up:
             self._pin_clk = Pin(pin_num_clk, Pin.IN, Pin.PULL_UP)
