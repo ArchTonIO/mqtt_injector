@@ -1,7 +1,0 @@
-{
-    "python.linting.pycodestyleEnabled": true,
-    "python.linting.pylintEnabled": true,
-    "python.autoComplete.extraPaths": [
-    ],
-    "python.analysis.extraPaths": [],
-}
