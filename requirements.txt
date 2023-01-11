@@ -1,0 +1,6 @@
+
+Written in micropython 1.19.1 on a Raspberry Pi Pico W.
+
+All dependencies should be installed used upip or thonny package manager:
+    - umqtt.simple (to use mqtt)
+    - micropython-ssd1306 (to use the ssd1306 i2c oled display)
