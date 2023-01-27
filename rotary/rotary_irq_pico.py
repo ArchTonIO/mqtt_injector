@@ -10,12 +10,8 @@
 # Documentation:
 #   https://github.com/MikeTeachman/micropython-rotary
 """
-# pylint: disable=import-error
-# pylint: disable=no-name-in-module
-# pylint: disable=too-few-public-methods
-# pylint: disable=too-many-arguments
+# pylint: disable=all
 from machine import Pin
-
 from rotary.rotary import Rotary
 
 IRQ_RISING_FALLING = Pin.IRQ_RISING | Pin.IRQ_FALLING
@@ -46,7 +42,6 @@ class RotaryIRQ(Rotary):
             half_step,
             invert
         )
-
         if pull_up:
             self._pin_clk = Pin(pin_num_clk, Pin.IN, Pin.PULL_UP)
             self._pin_dt = Pin(pin_num_dt, Pin.IN, Pin.PULL_UP)

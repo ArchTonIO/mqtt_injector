@@ -4,13 +4,14 @@ This module is used to manage the pages of the menu.
 # pylint: disable=import-error
 # pylint: disable=no-name-in-module
 # pylint: disable=too-many-instance-attributes
+# pylint: disable=too-many-arguments
 from time import sleep
 
 from machine import Pin
 from ssd1306 import SSD1306_I2C
 
-from commands import command_executer
-from page import page
+from commands import CommandExecuter
+from page import Page
 from rotary.rotary_irq_pico import RotaryIRQ
 
 
@@ -26,17 +27,18 @@ class PagesManager():
     ) -> None:
         self.pages = []
         self.target_page = None
-        self.actual_encoder_value = int()
+        self.actual_encoder_value = 0
         self.oled = oled
         self.rotary_encoder = rotary_encoder
         self.select_button = select_button
         self.back_positions = []
         self.off_pos = 6
-        self.cmd_executer = command_executer()
+        self.cmd_executer = CommandExecuter()
 
     def add_page(
         self,
         page_id: int,
+        is_leaf: bool,
         entries: list,
         cursor=">",
         right_cursor="<",
@@ -54,11 +56,12 @@ class PagesManager():
         - Returns:
             None.
         """
-        self.pages.append(page())
+        self.pages.append(Page())
         self.pages[-1].cursor = cursor
         self.pages[-1].right_cursor = right_cursor
         self.pages[-1].cursor_position = cursor_default_position
         self.pages[-1].id = page_id
+        self.pages[-1].is_leaf = is_leaf
         self.pages[-1].options_lines = entries
         self.back_positions.append((page_id,
                                     entries.index("back")))
@@ -90,7 +93,7 @@ class PagesManager():
         display_lines = (
             self.target_page.page_lines[line_increment:line_increment+6]
         )
-        raw_counter = int()
+        raw_counter = 0
         for line in display_lines:
             self.oled.text(line, 0, raw_counter)
             raw_counter += spacing
@@ -117,10 +120,8 @@ class PagesManager():
         else:
             self.cmd_executer.execute(
                 self,
-                (
-                    self.target_page.id,
-                    self.actual_encoder_value
-                )
+                self.target_page.id,
+                self.actual_encoder_value
             )
 
     def __change_page(self) -> None:
@@ -155,10 +156,11 @@ class PagesManager():
         while True:
             last_encoder_value = self.rotary_encoder.value()
             sleep(0.15)
-            print(self.rotary_encoder.value())
-            self.target_page.cursor_position = self.actual_encoder_value
-            self.target_page.build_page()
+            print(last_encoder_value)
             if self.actual_encoder_value != last_encoder_value:
+                self.actual_encoder_value = last_encoder_value
+                self.target_page.cursor_position = self.actual_encoder_value
+                self.target_page.build_page()
                 self.__display_page()
             if not self.select_button.value():
                 self.__action()

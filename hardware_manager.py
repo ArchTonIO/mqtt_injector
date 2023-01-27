@@ -4,10 +4,10 @@ This module contains the hardware manager class.
 # pylint: disable=import-error
 # pylint: disable=no-name-in-module
 from time import sleep_ms
-
-from machine import I2C, Pin
+from machine import I2C, Pin, SPI
 from ssd1306 import SSD1306_I2C
-
+import sd_card.sdcard
+from pins_declarations import Pins
 from rotary.rotary_irq_pico import RotaryIRQ
 
 
@@ -18,32 +18,51 @@ class HwMan:
     and can be accessed from any module only
     through this class.
     """
+    OLED_I2C = I2C(
+        0,
+        scl=Pin(Pins.OLED_SCL),
+        sda=Pin(Pins.OLED_SDA),
+        freq=200000
+    )
+    KEYBOARD_I2C = I2C(
+        1,
+        scl=Pin(Pins.KEYBOARD_SCL),
+        sda=Pin(Pins.KEYBOARD_SDA)
+    )
+    SD_READER_SPI = SPI(
+        1,
+        baudrate=40000000,
+        sck=Pin(Pins.SD_READER_SCK),
+        mosi=Pin(Pins.SD_READER_MOSI),
+        miso=Pin(Pins.SD_READER_MISO)
+    )
     OLED_HEIGHT = 64
     OLED_WIDTH = 128
-    OLED_I2C = I2C(0, scl=Pin(9), sda=Pin(8), freq=200000)
     oled = SSD1306_I2C(OLED_WIDTH, OLED_HEIGHT, OLED_I2C)
+    keyboard = KEYBOARD_I2C.scan()[0]
+    sd_reader = sd_card.sdcard.SDCard(SD_READER_SPI, Pin(Pins.SD_READER_CS))
     encoder = RotaryIRQ(
-        pin_num_clk=12,
-        pin_num_dt=13,
+        pin_num_clk=Pins.ENCODER_CLK,
+        pin_num_dt=Pins.ENCODER_DT,
         min_val=0,
         max_val=24,
         reverse=False,
         range_mode=RotaryIRQ.RANGE_WRAP,
         pull_up=True
     )
-    select_button = Pin(14, Pin.IN, Pin.PULL_UP)
-    fast_button = Pin(16, Pin.IN, Pin.PULL_UP)
+    select_button = Pin(Pins.SELECT_BUTTON, Pin.IN, Pin.PULL_UP)
+    fast_button = Pin(Pins.FAST_BUTTON, Pin.IN, Pin.PULL_UP)
     leds_list = [
-        Pin(28, Pin.OUT),
-        Pin(27, Pin.OUT),
-        Pin(26, Pin.OUT),
-        Pin(22, Pin.OUT),
-        Pin(21, Pin.OUT),
-        Pin(20, Pin.OUT),
-        Pin(19, Pin.OUT),
-        Pin(18, Pin.OUT),
-        Pin(17, Pin.OUT),
-        Pin(15, Pin.OUT)
+        Pin(Pins.LED_0, Pin.OUT),
+        Pin(Pins.LED_1, Pin.OUT),
+        Pin(Pins.LED_2, Pin.OUT),
+        Pin(Pins.LED_3, Pin.OUT),
+        Pin(Pins.LED_4, Pin.OUT),
+        Pin(Pins.LED_5, Pin.OUT),
+        Pin(Pins.LED_6, Pin.OUT),
+        Pin(Pins.LED_7, Pin.OUT),
+        Pin(Pins.LED_8, Pin.OUT),
+        Pin(Pins.LED_9, Pin.OUT)
     ]
 
     @staticmethod
@@ -65,8 +84,6 @@ class HwMan:
             - the string typed by the user
             - None if the user presses the esc key
         """
-        keyboard_i2c = I2C(1, scl=Pin(7), sda=Pin(6))
-        keyboard = keyboard_i2c.scan()[0]
         esc = chr(27)
         null = '\x00'
         bksp = '\x08'
@@ -78,7 +95,7 @@ class HwMan:
         HwMan.oled.text(initial_text, 0, 0)
         HwMan.oled.show()
         while char != esc:
-            c_encoded = keyboard_i2c.readfrom(keyboard, 1)
+            c_encoded = HwMan.KEYBOARD_I2C.readfrom(HwMan.keyboard, 1)
             char = c_encoded.decode()
             if char not in (null, esc, bksp, enter):
                 print(c_encoded, char)
@@ -141,7 +158,7 @@ class HwMan:
         HwMan.oled.text("]", 120, 32)
         HwMan.oled.show()
         for i in range(14):
-            HwMan.oled.text("#", 8+i*8, 32)
+            HwMan.oled.text("\u25AF", 8+i*8, 32)
             HwMan.oled.show()
             sleep_ms(50)
 

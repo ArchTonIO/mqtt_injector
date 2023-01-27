@@ -14,6 +14,7 @@ try:
     )
     pages_man.add_page(
         page_id=0,
+        is_leaf=False,
         entries=[
             "wlan tools",
             "ble tools",
@@ -27,7 +28,7 @@ try:
     )
     pages_man.add_page(
         page_id=1,
-        leaf_attr=True,
+        is_leaf=True,
         entries=[
             "wlan scan",
             "wlan status",
@@ -37,7 +38,7 @@ try:
         )
     pages_man.add_page(
         page_id=2,
-        leaf_attr=True,
+        is_leaf=True,
         entries=[
             "ble status",
             "ble scan",
@@ -47,32 +48,35 @@ try:
     )
     pages_man.add_page(
         page_id=3,
-        leaf_attr=True,
+        is_leaf=True,
         entries=[
+            "fast publish",
+            "fast connect",
+            "mqtt set_conn.",
+            "mqtt connect",
             "mqtt status",
-            "mqtt set brokr",
             "mqtt subscribe",
             "mqtt publish",
-            "fast publish",
             "back"
         ]
     )
     pages_man.add_page(
         page_id=4,
-        leaf_attr=True,
+        is_leaf=True,
         entries=[
             "mount card",
             "umount card",
+            "list files",
+            "format_card",
             "read log",
-            "write code",
-            "excecute code",
-            "navigate fs",
+            "write file",
+            "excecute file",
             "back"
         ]
     )
     pages_man.add_page(
         page_id=5,
-        leaf_attr=True,
+        is_leaf=False,
         entries=[
             "boot hw check",
             "boot animation",
