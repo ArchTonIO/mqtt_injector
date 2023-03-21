@@ -2,12 +2,11 @@
     "workbench.colorTheme": "Monokai Vibrant",
     "editor.inlineSuggest.enabled": true,
     "workbench.iconTheme": "vscode-icons",
-    "python.defaultInterpreterPath": "/home/antonio/progetto_todino/bin/python3",
+    "python.defaultInterpreterPath": "/home/antonio/.conda/envs/macchinetta_env/bin/python3",
     "editor.fontLigatures": true,
     "python.linting.pycodestyleEnabled": true,
     "python.linting.pylintEnabled": true,
-    "python.analysis.extraPaths": [],
-    "editor.rulers": [79,120],
+    "editor.rulers": [79],
     "workbench.colorCustomizations": {
         "editorRuler.foreground": "#ff4081"
     },

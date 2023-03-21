@@ -3,11 +3,14 @@ This module contains the hardware manager class.
 """
 # pylint: disable=import-error
 # pylint: disable=no-name-in-module
+# pylint: disable=no-member
+import os
 from time import sleep_ms
 from machine import I2C, Pin, SPI
 from ssd1306 import SSD1306_I2C
 import sd_card.sdcard
 from pins_declarations import Pins
+from files_manager import FilesManager
 from rotary.rotary_irq_pico import RotaryIRQ
 
 
@@ -119,6 +122,127 @@ class HwMan:
                 HwMan.oled.show()
                 return None
             sleep_ms(5)
+
+    @staticmethod
+    def mount_card() -> None:
+        """
+        This method is used to mount the sd card.
+        """
+        try:
+            vfs = os.VfsFat(HwMan.sd_reader)
+            os.mount(vfs, '/sd')
+            return True
+        except OSError:
+            return False
+
+    @staticmethod
+    def unmount_card() -> None:
+        """
+        This method is used to unmount the sd card.
+        """
+        try:
+            os.umount('/sd')
+            return True
+        except OSError:
+            return False
+
+    @staticmethod
+    def write_to_sd_card(
+        file_name: str,
+        data: str or dict,
+        formatting: str = "dict",
+        mode: str = "a"
+    ) -> None:
+        """
+        This method is used to write data to a file on the sd card.
+        - Args:
+            - file_name: the name of the file to write to
+            - formatting: the formatting of the data to write to the file
+                (either "dict" or "str")
+            - data: the data to write to the file
+            - mode: the mode to open the file in (either "a" or "w")
+        """
+        passed = False
+        if formatting == "str":
+            try:
+                FilesManager.write_raw_text_to_file(
+                    file_name=file_name,
+                    data=data,
+                    mode=mode
+                )
+                passed = True
+            except OSError:
+                print("cannnot write to file")
+        elif formatting == "dict":
+            try:
+                FilesManager.write_dict_to_file(
+                    file_name=file_name,
+                    data=data,
+                    mode=mode
+                )
+                passed = True
+            except OSError:
+                print("cannot write to file")
+        return passed
+
+    @staticmethod
+    def read_from_sd_card(
+        file_name: str,
+        parsing: str = "dict",
+        key: str = "",
+    ) -> dict or str:
+        """
+        This method is used to read data from a file on the sd card.
+        - Args:
+            - file_name: the name of the file to read from
+            - parsing: the parsing mode (either "dict" or "str")
+        - Returns:
+            - the data read from the file
+        """
+        if parsing == "str":
+            try:
+                return FilesManager.read_raw_text_from_file(file_name)
+            except OSError:
+                return None
+        elif parsing == "dict":
+            try:
+                return FilesManager.parse_dict_from_file(file_name, key)
+            except OSError:
+                return None
+        else:
+            print("not a valid reading command")
+            return None
+
+    @staticmethod
+    def list_sd_card_files() -> list:
+        """
+        This method is used to list the files on the sd card.
+        - Args:
+            - None
+        - Returns:
+            - the list of files on the sd card
+        """
+        files = os.listdir("/sd")
+        if files != []:
+            FilesManager.file_list = files
+        return os.listdir("/sd")
+
+    @staticmethod
+    def retrieve_file_list() -> list:
+        """
+        This method is used to retrieve the file list.
+        """
+        return FilesManager.file_list
+
+    @staticmethod
+    def format_card() -> None:
+        """
+        This method is used to format the sd card.
+        """
+        try:
+            os.VfsFat.mkfs(HwMan.sd_reader)
+        except OSError:
+            print("cannot format card")
 
     @staticmethod
     def set_led_bar(value) -> None:

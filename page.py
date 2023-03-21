@@ -11,37 +11,44 @@ class Page():
     that can be selected.
     """
     def __init__(self):
-        self.max_lines = 24
-        self.cursor = str()
-        self.right_cursor = str()
-        self.cursor_position = int()
-        self.options_lines = [str()]*self.max_lines
-        self.page_lines = [str()]*self.max_lines
-        self.page_id = int()
+        self.uid = ""
+        self.cursor = ""
+        self.right_cursor = ""
+        self.cursor_position = 0
+        self.options = []
+        self.__lines = []
+        self.parent = None
+        self.childs = {}
 
-    def build_page(self, curors_at_screen_border=False) -> None:
+    def build_page(self, cursors_at_screen_border=False) -> None:
         """
         This method is used to build the page.
-        Building the page means to add the cursor
-        to the selected option.
+        Building the page means to add the cursor and spaces
+        around the selected option.
+        Page lines differs from options lines cause they contains
+        the cursor.
         - Args:
-            - curors_at_screen_border, default False:
+            - cursors_at_screen_border, default False:
                 - True:
-                    _________________
-                    |    option_0   |
-                    |>   option_1  <|
-                    |    option_2   |
-                    |_______________|
+                    ___________________
+                    |     option_0    |
+                    | >   option_1  < |
+                    |     option_2    |
+                    |_________________|
                 - False:
-                    _________________
-                    |    option_0   |
-                    |   >option_1<  |
-                    |    option_2   |
-                    |_______________|
-        - Returns:
-            - None
+                    ___________________
+                    |     option_0    |
+                    |    >option_1<   |
+                    |     option_2    |
+                    |_________________|
         """
-        for i, option in enumerate(self.options_lines):
+        if (
+            "back" in self.options
+            and self.options.index("back") != len(self.options) - 1
+        ):
+            raise ValueError("bad position for 'back', place it as last entry")
+        self.__lines = [None]*len(self.options)
+        for i, option in enumerate(self.options):
             if i == self.cursor_position:
                 num_spaces = int(
                     (16 - (len(self.cursor) + len(option))) / 2
@@ -49,8 +56,8 @@ class Page():
                 spaces = " " * num_spaces
                 if len(option) % 2 != 0:
                     spaces = " " * (num_spaces-1)
-                if curors_at_screen_border:
-                    self.page_lines[i] = (
+                if cursors_at_screen_border:
+                    self.__lines[i] = (
                         self.cursor
                         + spaces
                         + option
@@ -58,7 +65,7 @@ class Page():
                         + self.right_cursor
                     )
                 else:
-                    self.page_lines[i] = (
+                    self.__lines[i] = (
                         spaces
                         + self.cursor
                         + option
@@ -67,17 +74,12 @@ class Page():
             else:
                 num_spaces = int((16-len(option))/2)
                 spaces = " "*num_spaces
-                self.page_lines[i] = spaces+self.options_lines[i]+spaces
+                self.__lines[i] = spaces+self.options[i]+spaces
 
-    def print_page(self, oled) -> None:
+    def print_page(self) -> None:
         """
-        This method is used to print the page on the oled.
-        - Args:
-            - oled: the oled object
-        - Returns:
-            - None
+        This method is used to print the page.
         """
-        oled.fill(0)
-        for i, option in enumerate(self.page_lines):
-            oled.text(option, 0, i*8)
-        oled.show()
+        self.build_page()
+        for line in self.__lines:
+            print(line)

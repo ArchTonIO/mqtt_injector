@@ -1,0 +1,105 @@
+
+{
+    "main page":
+    {
+        "wlan tools": "wlan tools",
+        "ble tools": "ble tools",
+        "mqtt tools": "mqtt tools",
+        "sd card tools": "sd card tools",
+        "config" : "config",
+        "screen off": "screen off",
+        "__page_uid": "A0",
+        "__cursor": ">",
+        "__right_cursor": "<",
+        "__cursor_default_position": "0",
+        "__parent": "none",
+        "__childs":
+        {
+            "0": "B0",
+            "1": "C0",
+            "2": "D0",
+            "3": "E0",
+            "4": "F0"
+        }
+    },
+    "wlan tools":
+    {
+        "wlan scan": "wlan scan",
+        "wlan status": "wlan status",
+        "wlan connect": "wlan connect",
+        "back": "back to main page",
+        "__page_uid": "B0",
+        "__cursor": ">",
+        "__right_cursor": "<",
+        "__cursor_default_position": "0",
+        "__parent": "A0",
+        "__childs": {}
+    },
+    "ble tools":
+    {
+        "ble status": "ble status",
+        "ble scan": "ble scan",
+        "ble connect": "ble connect",
+        "back": "back to main page",
+        "__page_uid": "C0",
+        "__cursor": ">",
+        "__right_cursor": "<",
+        "__cursor_default_position": "0",
+        "__parent": "A0",
+        "__childs": {}
+    },
+    "mqtt tools":
+    {
+        "fast publish": "fast publish",
+        "fast connect": "fast connect",
+        "mqtt set_conn.": "mqtt set_conn.",
+        "mqtt connect": "mqtt connect",
+        "mqtt status": "mqtt status",
+        "mqtt subscribe": "mqtt subscribe",
+        "mqtt publish": "mqtt publish",
+        "back": "back to main page",
+        "__page_uid": "D0",
+        "__cursor": ">",
+        "__right_cursor": "<",
+        "__cursor_default_position": "0",
+        "__parent": "A0",
+        "__childs": {}
+    },
+    "sd card tools":
+    {
+        "mount card": "mount card",
+        "umount card": "umount card",
+        "list files": "list files",
+        "format_card": "format_card",
+        "read log": "read log",
+        "write file": "write file",
+        "excecute file": "excecute file",
+        "back": "back to main page",
+        "__page_uid": "E0",
+        "__cursor": ">",
+        "__right_cursor": "<",
+        "__cursor_default_position": "0",
+        "__parent": "A0",
+        "__childs": {}
+    },
+    "config":
+    {
+        "boot hw check": "boot hw check",
+        "boot animation": "boot animation",
+        "error recovery": "error recovery",
+        "led brightness": "led brightness",
+        "oled brightnes": "oled brightnes",
+        "oled contrast": "oled contrast",
+        "rverse encoder": "rverse encoder",
+        "save to flash": "save to flash",
+        "available sram": "available sram",
+        "availble flash": "availble flash",
+        "back": "back to main page",
+        "__page_uid": "F0",
+        "__cursor": ">",
+        "__right_cursor": "<",
+        "__cursor_default_position": "0",
+        "__parent": "A0",
+        "__childs": {}
+    }
+}
