@@ -1,3 +1,0 @@
-a = ciao
-b = mi chiamo
-c = ['sandro', 'pisnelo']
