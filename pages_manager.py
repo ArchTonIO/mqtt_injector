@@ -148,9 +148,7 @@ class PagesManager():
         while True:
             if self.encoder.value() != last_encoder_value:
                 last_encoder_value = self.encoder.value()
-                self.target_page.update_cursor_row_position(
-                    self.encoder.value()
-                )
+                self.target_page.cursor_position = self.encoder.value()
                 self.target_page.to_oled()
             if self.select_button.value() == 0:
                 self.switch_page(self.target_page, self.encoder.value())

@@ -142,7 +142,6 @@ class Page():
         Update the cursor position.
         """
         self.cursor_position = position
-        print(f"CURSOR_POSITION: {self.cursor_position}")
 
     def print_page(self) -> None:
         """
