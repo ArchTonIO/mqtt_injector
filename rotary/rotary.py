@@ -87,7 +87,7 @@ class Rotary(object):
         invert
     ):
         self._min_val = min_val
-        self._max_val = max_val
+        self.max_val = max_val
         self._reverse = -1 if reverse else 1
         self._range_mode = range_mode
         self._value = min_val
@@ -106,7 +106,7 @@ class Rotary(object):
         if min_val is not None:
             self._min_val = min_val
         if max_val is not None:
-            self._max_val = max_val
+            self.max_val = max_val
         if reverse is not None:
             self._reverse = -1 if reverse else 1
         if range_mode is not None:
@@ -168,13 +168,13 @@ class Rotary(object):
                 self._value,
                 incr,
                 self._min_val,
-                self._max_val)
+                self.max_val)
         elif self._range_mode == self.RANGE_BOUNDED:
             self._value = _bound(
                 self._value,
                 incr,
                 self._min_val,
-                self._max_val)
+                self.max_val)
         else:
             self._value = self._value + incr
 

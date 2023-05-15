@@ -137,12 +137,6 @@ class Page():
         spaces = " "*num_spaces
         self.__lines[i] = spaces+self.options[i]+spaces
 
-    def update_cursor_row_position(self, position) -> None:
-        """
-        Update the cursor position.
-        """
-        self.cursor_position = position
-
     def print_page(self) -> None:
         """
         Print the page to the console.

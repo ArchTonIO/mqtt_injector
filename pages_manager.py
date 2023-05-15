@@ -26,6 +26,7 @@ class PagesManager():
         self.pages = {}
         self.target_page = None
         self.back_positions = []
+        self.last_encoder_value = 0
 
     def build_menu_from_json(self, json_file: str) -> None:
         """
@@ -33,10 +34,10 @@ class PagesManager():
         """
         with open(json_file, "r", encoding="UTF-8") as file:
             menu = json.load(file)
-        ordered_keys = self.order_menu_keys(menu)
+        ordered_keys = self._order_menu_keys(menu)
         for key in ordered_keys:
-            entries = self.parse_entries(menu[key].keys(), menu[key])
-            self.add_page(
+            entries = self._parse_entries(menu[key].keys(), menu[key])
+            self._add_page(
                 page_uid=menu[key]["__page_uid"],
                 entries=entries,
                 parent=menu[key]["__parent"],
@@ -49,10 +50,8 @@ class PagesManager():
                 continue
             self.back_positions.append(
                 (menu[key]["__page_uid"], len(entries)-1))
-            print("back_positions", self.back_positions)
-        print("done")
 
-    def order_menu_keys(self, menu) -> list:
+    def _order_menu_keys(self, menu) -> list:
         """
         Since the json parser doesn't keep the order of the keys,
         this function is used to order the keys by parsing order.
@@ -68,16 +67,15 @@ class PagesManager():
                 ordered_keys.append(key)
         return ordered_keys
 
-    def parse_entries(self, keys: list, page: dict) -> list:
+    def _parse_entries(self, keys: list, page: dict) -> list:
         """
         Parse in an ordered way the entries of the menu.
         """
         entries = [(int(key), page[key]) for key in keys if "__" not in key]
         sorted_entries = sorted(entries, key=lambda x: x[0])
-        print("sorted_entries: ", sorted_entries)
         return [entry[1] for entry in sorted_entries]
 
-    def add_page(
+    def _add_page(
         self,
         page_uid: int,
         entries: list,
@@ -90,7 +88,7 @@ class PagesManager():
         """
         This function is used to add a page to the menu.
         Adding means appending to the pages list.
-        - params:
+        - Params:
             - page_uid: the page id.
             - entries: the entries (options) of the page.
             - cursor: the character used as cursor.
@@ -107,7 +105,7 @@ class PagesManager():
         self.pages[page_uid].parent = parent
         self.pages[page_uid].childs = childs
 
-    def switch_page(self, current_page: str, selected_option: int) -> None:
+    def _switch_page(self, current_page: str, selected_option: int) -> None:
         """
         This function is used to switch the current page
         to the target page (from parent to child or viceversa).
@@ -137,21 +135,52 @@ class PagesManager():
         self.pages.pop(-1)
         self.back_positions.pop(-1)
 
-    def loop(self) -> None:
-        """
-        This method is used to loop the menu.
-        """
-        last_encoder_value = self.encoder.value()
+    def _setup(self) -> None:
+        """ Setup the first page to be displayed on the menu. """
+        self.last_encoder_value = self.encoder.value()
         self.target_page = self.pages["A0"]
-        self.encoder._max_val = len(self.target_page.options) - 1
+        self.encoder.max_val = len(self.target_page.options) - 1
         self.target_page.to_oled()
+
+    def _loop(self) -> None:
+        """ Loop the menu. """
+        if self.encoder.value() != self.last_encoder_value:
+            self.last_encoder_value = self.encoder.value()
+            self.target_page.cursor_position = self.encoder.value()
+            self.target_page.to_oled()
+        if self.select_button.value() == 0:
+            self._perform_action()
+
+    def _perform_action(self):
+        """ Perform one of the two actions:
+            - switch page
+            - excecute command
+            This is decided by the presence of childs in the target page
+            and by the presence of the target page in the back_positions list,
+            it is given that if the target page has no childs, it has to
+            excecute a command.
+        """
+        if (
+            (
+                self.target_page.uid, self.encoder.value()
+            ) not in self.back_positions
+            and self.target_page.childs == {}
+        ):
+            self._excecute_command()
+            return
+        self._switch_page(self.target_page, self.encoder.value())
+        self.encoder.max_val = len(self.target_page.options) - 1
+        self.target_page.to_oled()
+        sleep(0.2)
+
+    def _excecute_command(self):
+        print(
+            "if you see this, you have to implement the"
+            " _excecute_command method"
+        )
+
+    def run(self) -> None:
+        """ Kick off the menu. """
+        self._setup()
         while True:
-            if self.encoder.value() != last_encoder_value:
-                last_encoder_value = self.encoder.value()
-                self.target_page.cursor_position = self.encoder.value()
-                self.target_page.to_oled()
-            if self.select_button.value() == 0:
-                self.switch_page(self.target_page, self.encoder.value())
-                self.encoder._max_val = len(self.target_page.options) - 1
-                self.target_page.to_oled()
-                sleep(0.2)
+            self._loop()
