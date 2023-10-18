@@ -2,7 +2,6 @@
 This module contains the page class,
 the fundamental unit of the menu.
 """
-# pylint: disable=import-error
 from time import sleep
 from ssd1306 import SSD1306_I2C
 
@@ -10,11 +9,25 @@ MAX_CHARS_PER_LINE_ON_OLED = 16
 MAX_LINES_ON_OLED = 6
 
 
-class Page():
+class Page:
     """
     This class is used to represent a page.
     A page is basically a list of options
     that can be selected.
+
+    Attributes
+    ----------
+
+    oled : the oled display
+    uid : the page id
+    cursor : the cursor character
+    right_cursor : the right cursor character
+    cursor_position : the cursor position (the line, 0 being the first)
+    options : the page options
+    parent : the parent page id
+    childs : the child pages ids
+    _lines  : the page lines
+
     """
     def __init__(self, oled: SSD1306_I2C):
         self.oled = oled
@@ -25,7 +38,7 @@ class Page():
         self.options = []
         self.parent = None
         self.childs = {}
-        self.__lines = []
+        self._lines = []
 
     def build_page(self, cursors_at_screen_border=False) -> None:
         """
@@ -33,9 +46,10 @@ class Page():
         Building the page means to add the cursor and spaces
         around the selected option.
         Page lines differs from options lines cause they contains
-        the cursor.
-        - Args:
-            - cursors_at_screen_border, default False:
+        the cursor and the spaces.
+
+        Params :
+            - cursors_at_screen_border
                 - True:
                     ___________________
                     |     option_0    |
@@ -49,16 +63,16 @@ class Page():
                     |     option_2    |
                     |_________________|
         """
-        self.__check_back_position()
-        self.__lines = [None]*len(self.options)
+        self._check_back_position()
+        self._lines = [None]*len(self.options)
         for i, option in enumerate(self.options):
-            self.__check_option_length(option)
+            self._check_option_length(option)
             if i != self.cursor_position:
-                self.__build_line_with_no_cursor(option, i)
+                self._build_line_with_no_cursor(option, i)
                 continue
-            self.__build_line_with_cursor(option, cursors_at_screen_border, i)
+            self._build_line_with_cursor(option, cursors_at_screen_border, i)
 
-    def __check_back_position(self) -> None:
+    def _check_back_position(self) -> None:
         """
         Check if the back option is placed at the last position of the page.
         """
@@ -71,7 +85,7 @@ class Page():
                 f"entries are: {self.options}"
             )
 
-    def __check_option_length(self, option: str) -> None:
+    def _check_option_length(self, option: str) -> None:
         """
         Check if the option length is greater than the maximum
         number of characters per line.
@@ -84,7 +98,7 @@ class Page():
                 " characters"
             )
 
-    def __build_line_with_cursor(self, option, cursors_at_screen_border, i):
+    def _build_line_with_cursor(self, option, cursors_at_screen_border, i):
         """
         Build a line with the cursor.
         """
@@ -101,15 +115,15 @@ class Page():
             else " " * num_spaces
         )
         if not cursors_at_screen_border:
-            self.__populate_line_witch_adjacent_cursor(option, spaces, i)
+            self._populate_line_witch_adjacent_cursor(option, spaces, i)
             return
-        self.__populate_line_with_cursor_at_screen_border(option, spaces, i)
+        self._populate_line_with_cursor_at_screen_border(option, spaces, i)
 
-    def __populate_line_witch_adjacent_cursor(self, option, spaces, i):
+    def _populate_line_witch_adjacent_cursor(self, option, spaces, i):
         """
         Populate a line with the cursor adjacent to the option.
         """
-        self.__lines[i] = (
+        self._lines[i] = (
             spaces
             + self.cursor
             + option
@@ -117,11 +131,11 @@ class Page():
             + spaces
         )
 
-    def __populate_line_with_cursor_at_screen_border(self, option, spaces, i):
+    def _populate_line_with_cursor_at_screen_border(self, option, spaces, i):
         """
         Populate a line with the cursor at the screen border.
         """
-        self.__lines[i] = (
+        self._lines[i] = (
             self.cursor
             + spaces
             + option
@@ -129,20 +143,20 @@ class Page():
             + self.right_cursor
         )
 
-    def __build_line_with_no_cursor(self, option, i):
+    def _build_line_with_no_cursor(self, option, i):
         """
         This method is used to build a line with no cursor.
         """
-        num_spaces = int((MAX_CHARS_PER_LINE_ON_OLED-len(option))/2)
-        spaces = " "*num_spaces
-        self.__lines[i] = spaces+self.options[i]+spaces
+        num_spaces = int((MAX_CHARS_PER_LINE_ON_OLED - len(option)) / 2)
+        spaces = " " * num_spaces
+        self._lines[i] = spaces + self.options[i] + spaces
 
     def print_page(self) -> None:
         """
         Print the page to the console.
         """
         self.build_page()
-        for line in self.__lines:
+        for line in self._lines:
             print(line)
 
     def to_oled(
@@ -153,38 +167,40 @@ class Page():
     ) -> None:
         """
         Print the page to the oled display.
-        - Params:
-            - lines_spacing: the spacing between the lines in pixels
-            - lines_creation_interval: the interval between the lines
-                creation in seconds, if greater than 0 the lines will
-                be created one by one and you will see them be written
-                gradually on the screen.
-            - console_print: if True the page will also be printed to the
-                console
+
+        Parameters
+        ----------
+        lines_spacing : the spacing between the lines in pixels
+        lines_creation_interval : the interval between the lines
+        creation in seconds, if greater than 0 the lines will
+        be created one by one and you will see them be written
+        gradually on the screen.
+        console_print : if True the page will also be printed to the
+        console
         """
         if console_print:
             self.print_page()
         else:
             self.build_page()
-        display_lines = self.__concretize_page()
-        self.__show_on_oled(
+        display_lines = self._concretize_page()
+        self._show_on_oled(
             display_lines,
             lines_spacing,
             lines_creation_interval
         )
 
-    def __concretize_page(self) -> list:
+    def _concretize_page(self) -> list:
         """
-        Make the page lines fits the oled display.
+        Make the page lines fits the oled display vertically.
         """
         line_increment = 0
         if self.cursor_position > MAX_LINES_ON_OLED - 1:
             line_increment = self.cursor_position
-        return self.__lines[
+        return self._lines[
             line_increment: line_increment + MAX_LINES_ON_OLED
         ]
 
-    def __show_on_oled(
+    def _show_on_oled(
         self,
         display_lines: list,
         lines_spacing: int,
@@ -209,8 +225,10 @@ class DataPage():
     Data page is a page that only contains data. It is a subclass of Page.
     Data pages are for their nature static and meant to be deleted after
     they have been displayed.
-    - params:
-        - data: the data to show, a list of strings.
+
+    Attributes
+    ----------
+    data : the data to show, a list of strings.
     """
     def __init__(self, data: list, oled=SSD1306_I2C):
         self.page = Page(oled)
@@ -220,17 +238,17 @@ class DataPage():
         """
         This method is used to build the page.
         """
-        self.__check_data()
+        self._check_data()
         self.page.options = self.data
 
-    def __check_data(self) -> None:
+    def _check_data(self) -> None:
         """
         Check if the data is too long to be displayed.
         """
-        self.__vertical_check()
-        self.__horizontal_check()
+        self._vertical_check()
+        self._horizontal_check()
 
-    def __vertical_check(self) -> None:
+    def _vertical_check(self) -> None:
         """
         Check if the data is too long to be displayed vertically.
         """
@@ -240,7 +258,7 @@ class DataPage():
                 "please reduce it to 6 lines"
             )
 
-    def __horizontal_check(self) -> None:
+    def _horizontal_check(self) -> None:
         """
         Check if the data is too long to be displayed horizontally.
         """
@@ -265,12 +283,14 @@ class DataPage():
     ) -> None:
         """
         Print the page to the oled display.
-        - Params:
-            - lines_spacing: the spacing between the lines in pixels
-            - lines_creation_interval: the interval between the lines
-                creation in seconds, if greater than 0 the lines will
-                be created one by one and you will see them be written
-                gradually on the screen.
+
+        Parameters
+        ----------
+        lines_spacing : the spacing between the lines in pixels
+        lines_creation_interval : the interval between the lines
+        creation in seconds, if greater than 0 the lines will
+        be created one by one and you will see them be written
+        gradually on the screen.
         """
         self.build_page()
         self.page.to_oled(

@@ -1,14 +1,14 @@
 {
-    "workbench.colorTheme": "Monokai Vibrant",
-    "editor.inlineSuggest.enabled": true,
-    "workbench.iconTheme": "vscode-icons",
-    "python.defaultInterpreterPath": "/home/antonio/.conda/envs/macchinetta_env/bin/python3",
-    "editor.fontLigatures": true,
-    "python.linting.pycodestyleEnabled": true,
-    "python.linting.pylintEnabled": true,
-    "editor.rulers": [79],
-    "workbench.colorCustomizations": {
-        "editorRuler.foreground": "#ff4081"
+    "python.linting.enabled": true,
+    "python.languageServer": "Pylance",
+    "python.analysis.typeCheckingMode": "basic",
+    "python.analysis.diagnosticSeverityOverrides": {
+        "reportMissingModuleSource": "none"
     },
-    "editor.fontFamily": "Cascadia Code",
+    "python.analysis.typeshedPaths": [
+        ".vscode/Pico-W-Stub"
+    ],
+    "python.analysis.extraPaths": [
+        ".vscode/Pico-W-Stub"
+    ]
 }

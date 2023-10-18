@@ -76,9 +76,8 @@
         "2": "list files",
         "3": "format_card",
         "4": "read log",
-        "5": "write file",
-        "6": "excecute file",
-        "7": "back",
+        "5": "excecute file",
+        "6": "back",
         "__parsing_order": "5",
         "__page_uid": "E0",
         "__cursor": ">",
@@ -89,23 +88,119 @@
     },
     "config":
     {
-        "1": "boot hw check",
-        "2": "boot animation",
-        "3": "error recovery",
-        "4": "led brightness",
-        "5": "oled brightnes",
-        "6": "oled contrast",
-        "7": "rverse encoder",
-        "8": "save to flash",
-        "9": "available sram",
-        "10": "availble flash",
-        "11": "back",
+        "0": "boot hw check",
+        "1": "boot animation",
+        "2": "error recovery",
+        "3": "led brightness",
+        "4": "oled brightnes",
+        "5": "oled contrast",
+        "6": "rverse encoder",
+        "7": "save to flash",
+        "8": "available sram",
+        "9": "availble flash",
+        "10": "back",
         "__parsing_order": "6",
         "__page_uid": "F0",
         "__cursor": ">",
         "__right_cursor": "<",
         "__cursor_default_position": "0",
         "__parent": "A0",
+        "__childs": {}
+    },
+    "boot hw check set":
+    {
+        "0": "enable",
+        "1": "disable",
+        "__parsing_order": "7",
+        "__page_uid": "G0",
+        "__cursor": ">",
+        "__right_cursor": "<",
+        "__cursor_default_position": "0",
+        "__parent": "F0",
+        "__childs": {}
+    },
+    "boot animation set":
+    {
+        "0": "enable",
+        "1": "disable",
+        "__parsing_order": "8",
+        "__page_uid": "H0",
+        "__cursor": ">",
+        "__right_cursor": "<",
+        "__cursor_default_position": "0",
+        "__parent": "F0",
+        "__childs": {}
+    },
+    "error recovery set":
+    {
+        "0": "enable",
+        "1": "disable",
+        "__parsing_order": "9",
+        "__page_uid": "I0",
+        "__cursor": ">",
+        "__right_cursor": "<",
+        "__cursor_default_position": "0",
+        "__parent": "F0",
+        "__childs": {}
+    },
+    "led brightness set":
+    {
+        "0": "0",
+        "1": "1",
+        "2": "2",
+        "3": "3",
+        "4": "4",
+        "5": "5",
+        "__parsing_order": "10",
+        "__page_uid": "J0",
+        "__cursor": ">",
+        "__right_cursor": "<",
+        "__cursor_default_position": "0",
+        "__parent": "F0",
+        "__childs": {}
+    },
+    "oled brightness set":
+    {
+        "0": "0",
+        "1": "1",
+        "2": "2",
+        "3": "3",
+        "4": "4",
+        "5": "5",
+        "__parsing_order": "11",
+        "__page_uid": "K0",
+        "__cursor": ">",
+        "__right_cursor": "<",
+        "__cursor_default_position": "0",
+        "__parent": "F0",
+        "__childs": {}
+    },
+    "oled contrast set":
+    {
+        "0": "0",
+        "1": "1",
+        "2": "2",
+        "3": "3",
+        "4": "4",
+        "5": "5",
+        "__parsing_order": "12",
+        "__page_uid": "L0",
+        "__cursor": ">",
+        "__right_cursor": "<",
+        "__cursor_default_position": "0",
+        "__parent": "F0",
+        "__childs": {}
+    },
+    "reverse encoder set":
+    {
+        "0": "enable",
+        "1": "disable",
+        "__parsing_order": "13",
+        "__page_uid": "M0",
+        "__cursor": ">",
+        "__right_cursor": "<",
+        "__cursor_default_position": "0",
+        "__parent": "F0",
         "__childs": {}
     }
 }

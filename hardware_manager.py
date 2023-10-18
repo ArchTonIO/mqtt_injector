@@ -1,16 +1,12 @@
-"""
-This module contains the hardware manager class.
-"""
-# pylint: disable=import-error
-# pylint: disable=no-name-in-module
-# pylint: disable=no-member
-import os
+""" Centralize the hardware managment. """
 from time import sleep_ms
+
 from machine import I2C, Pin, SPI
 from ssd1306 import SSD1306_I2C
-import sd_card.sdcard
+
 from pins_declarations import Pins
 from rotary.rotary_irq_pico import RotaryIRQ
+import sd_card.sdcard
 
 OLED_I2C = I2C(
     0,
@@ -32,6 +28,7 @@ SD_READER_SPI = SPI(
 )
 OLED_HEIGHT = 64
 OLED_WIDTH = 128
+CHAR_WIDTH = 8
 ESC = chr(27)
 NULL = '\x00'
 BKSP = '\x08'
@@ -44,6 +41,17 @@ class HardwareManager:
     All the device connected hardware is instanciated here
     and can be accessed from any module only
     through this class.
+
+    Attributes
+    ----------
+    oled : the oled display, it is a ssd1306 oled, 128x64 pixels.
+    keyboard : the i2c keyboard.
+    sd_reader : the sd card reader.
+    encoder : the rotary encoder.
+    select_button : the select button, it is a push button and its used
+    to select an option.
+    fast_button : the fast button, no one knows what it does.
+    leds_list : the list of the 10 leds of the led bar.
     """
     def __init__(self):
         self.oled = SSD1306_I2C(OLED_WIDTH, OLED_HEIGHT, OLED_I2C)
@@ -85,18 +93,21 @@ class HardwareManager:
         Write a string from the i2c keyboard connected to the device,
         the string is displayed on the oled while the user is
         typing, when the user presses the enter key the string is returned.
-        - Args:
-            - initial_text: the text to display before the user starts typing
-            - exit_text: the text to display when the user presses
-                the enter key
-            - abort_text: the text to display when the user presses the ESC key
-        - Returns:
-            - the string typed by the user
-            - None if the user presses the ESC key
+
+        Parameters
+        ----------
+        initial_text : the text to display before the user starts typing
+        exit_text : the text to display when the user presses the 'enter' key
+        abort_text : the text to display when the user presses the ESC key
+
+        Returns
+        -------
+        str : the string typed by the user
+        None : if the user presses the ESC key
         """
-        char = str()
-        i = int()
-        word = str()
+        char = ""
+        i = 0
+        word = ""
         self.show_msg(initial_text)
         while char != ESC:
             c_encoded = KEYBOARD_I2C.readfrom(self.keyboard, 1)
@@ -104,14 +115,20 @@ class HardwareManager:
             if char not in (NULL, ESC, BKSP, ENTER):
                 print(c_encoded, char)
                 word += char
-                self.oled.text(char, i, 8)
+                self.oled.text(char, i, CHAR_WIDTH)
                 self.oled.show()
-                i += 8
+                i += CHAR_WIDTH
             elif char == BKSP:
                 word = word[:-1]
-                self.oled.fill_rect(i-8, 8, 8, 8, 0)
+                self.oled.fill_rect(
+                    i - CHAR_WIDTH,
+                    CHAR_WIDTH,
+                    CHAR_WIDTH,
+                    CHAR_WIDTH,
+                    0
+                )
                 self.oled.show()
-                i -= 8
+                i -= CHAR_WIDTH
             elif char == ENTER:
                 self.show_msg(exit_text)
                 return word
@@ -119,62 +136,28 @@ class HardwareManager:
                 self.show_msg(abort_tex)
                 return None
             sleep_ms(5)
+        return None
 
     def show_msg(self, msg: str) -> None:
         """
-        This method is used to display a message on the oled
-        while the user is typing.
+        Display a message on the oled while the user is typing.
+
+        Parameters
+        ----------
+        msg : the message to display
         """
         self.oled.fill(0)
         self.oled.text(msg, 0, 0)
         self.oled.show()
 
-    def mount_card(self) -> None:
-        """
-        This method is used to mount the sd card.
-        """
-        try:
-            vfs = os.VfsFat(self.sd_reader)
-            os.mount(vfs, '/sd')
-            return True
-        except OSError:
-            return False
-
-    def unmount_card(self) -> None:
-        """
-        This method is used to unmount the sd card.
-        """
-        try:
-            os.umount('/sd')
-            return True
-        except OSError:
-            return False
-
-    def list_sd_card_files(self) -> list:
-        """
-        This method is used to list the files on the sd card.
-        - Returns:
-            - the list of files on the sd card
-        """
-        return os.listdir("/sd")
-
-    def format_card(self) -> None:
-        """
-        This method is used to format the sd card.
-        """
-        try:
-            os.VfsFat.mkfs(self.sd_reader)
-        except OSError:
-            print("cannot format card")
-
     def set_led_bar(self, value) -> None:
         """
-        Set the led bar to the given value
-        - Args:
-            - value: the value to set the led bar to
-                it can be a number from 0 to 10
-                where 0 is all the leds off
-                and 10 is all the leds on
+        Set the led bar to the given value.
+        Parameters
+        ---------
+
+        value : the value to set the led bar to it can be a number from 0 to 10
+        where 0 is all the leds off and 10 is all the leds on
         """
         for i in range(10):
             if i < value:

@@ -1,28 +1,37 @@
-"""
-This module is used to manage the pages of the menu.
-"""
-# pylint: disable=import-error
+""" Manage the pages of the menu. """
 import json
 from time import sleep
+
 from machine import Pin
 from ssd1306 import SSD1306_I2C
+
+from commands_dispatcher import CommandsDispatcher
 from page import Page, DataPage
 from rotary. rotary_irq_pico import RotaryIRQ
 
 
-class PagesManager():
+class PagesManager:
     """
-    This class is used to manage the pages of the menu.
+    Manage the pages of the menu.
+
+    Attributes
+    ----------
+    encoder : the rotary encoder
+    select_button : the select button
+    oled : the oled display
+    commands_dispatcher : the commands dispatcher instance
     """
     def __init__(
         self,
         encoder: RotaryIRQ,
         select_button: Pin,
-        oled: SSD1306_I2C
+        oled: SSD1306_I2C,
+        commands_dispatcher: CommandsDispatcher
     ) -> None:
         self.encoder = encoder
         self.select_button = select_button
         self.oled = oled
+        self.commands_dispatcher = commands_dispatcher
         self.pages = {}
         self.target_page = None
         self.back_positions = []
@@ -31,6 +40,10 @@ class PagesManager():
     def build_menu_from_json(self, json_file: str) -> None:
         """
         Build the device menu by parsing the pages json.
+
+        Parameters
+        ----------
+        json_file : the json file path containing the pages.
         """
         with open(json_file, "r", encoding="UTF-8") as file:
             menu = json.load(file)
@@ -88,13 +101,6 @@ class PagesManager():
         """
         This function is used to add a page to the menu.
         Adding means appending to the pages list.
-        - Params:
-            - page_uid: the page id.
-            - entries: the entries (options) of the page.
-            - cursor: the character used as cursor.
-            - right_cursor: the character used as right cursor.
-            - cursor_default_position: the default position
-                of the cursor when the knob is not turned.
         """
         self.pages.update({page_uid: Page(self.oled)})
         self.pages[page_uid].uid = page_uid
@@ -119,14 +125,21 @@ class PagesManager():
             ]
         ]
 
-    def display_data_page(self, data: list) -> None:
+    def display_data_page(self, data: list, persistence: int = 3) -> None:
         """
-        This function is used to display a data page.
+        This function is used to display a data page,
+        which is a page that displays a bunch of string without any cursor,
+        after the specified amount of time the page is replaced by the
+        previous one.
         - Params:
             - data: the data to display (a list of strings).
+            - persistence: the time in seconds the page will be displayed
+                before destroying it.
         """
         data_page = DataPage(data)
         data_page.to_oled()
+        sleep(persistence)
+        self.target_page.to_oled()
 
     def destroy_last_page(self) -> None:
         """
@@ -151,14 +164,15 @@ class PagesManager():
         if self.select_button.value() == 0:
             self._perform_action()
 
-    def _perform_action(self):
-        """ Perform one of the two actions:
+    def _perform_action(self) -> None:
+        """
+        Perform one of the two actions:
             - switch page
             - excecute command
-            This is decided by the presence of childs in the target page
-            and by the presence of the target page in the back_positions list,
-            it is given that if the target page has no childs, it has to
-            excecute a command.
+        This is decided by the presence of childs in the target page
+        and by the presence of the target page in the back_positions list,
+        it is given that if the target page has no childs, it has to
+        excecute a command.
         """
         if (
             (
@@ -166,21 +180,48 @@ class PagesManager():
             ) not in self.back_positions
             and self.target_page.childs == {}
         ):
-            self._excecute_command()
+            self._excecute_command(self.target_page, self.encoder.value())
             return
         self._switch_page(self.target_page, self.encoder.value())
         self.encoder.max_val = len(self.target_page.options) - 1
         self.target_page.to_oled()
         sleep(0.2)
 
-    def _excecute_command(self):
-        print(
-            "if you see this, you have to implement the"
-            " _excecute_command method"
-        )
+    def _excecute_command(self, target_page, encoder_value: int) -> None:
+        """ Excecute a command. """
+        command = target_page.options[encoder_value]
+        return_value = self.commands_dispatcher.dispatch(command)
+        self._create_pages_from_command_return_value(return_value)
+
+    def _create_pages_from_command_return_value(self, return_value) -> None:
+        """
+        Create pages from the return value of the command.
+        The return value can be a dict or a list.
+        - If it is a dict, it means that the command has created a page
+            and the page has to be added to the menu.
+        - If it is a list, it means that the command has to display a
+            data page.
+        """
+        if isinstance(return_value(dict)):
+            self._add_page(
+                page_uid=return_value["page_uid"],
+                entries=return_value["entries"].append("back"),
+                parent=return_value["parent"],
+                childs=return_value["childs"],
+                cursor=return_value["cursor"],
+                right_cursor=return_value["right_cursor"],
+                cursor_default_position=return_value[
+                    "cursor_default_position"
+                ]
+            )
+            self.target_page = self.pages[return_value["page_uid"]]
+            self.encoder.max_val = len(self.target_page.options) - 1
+            self.target_page.to_oled()
+        if isinstance(return_value, list):
+            self.display_data_page(return_value)
 
     def run(self) -> None:
-        """ Kick off the menu. """
+        """ Start the menu execution. """
         self._setup()
         while True:
             self._loop()

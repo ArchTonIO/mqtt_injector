@@ -1,0 +1,2 @@
+[MESSAGE CONTROL]
+disable = import-error, no-name-in-module, no-member, too-few-public-methods, exec-used
