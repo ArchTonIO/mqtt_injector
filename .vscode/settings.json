@@ -1,5 +1,8 @@
 {
-    "python.linting.enabled": true,
+    "editor.fontLigatures": true,
+    "workbench.colorTheme": "Monokai Vibrant",
+    "editor.inlineSuggest.enabled": true,
+    "workbench.iconTheme": "vscode-icons",
     "python.languageServer": "Pylance",
     "python.analysis.typeCheckingMode": "basic",
     "python.analysis.diagnosticSeverityOverrides": {
@@ -10,5 +13,11 @@
     ],
     "python.analysis.extraPaths": [
         ".vscode/Pico-W-Stub"
-    ]
+    ],
+    "editor.rulers": [79],
+    "workbench.colorCustomizations": {
+        "editorRuler.foreground": "#ff4081"
+    },
+    "editor.fontFamily": "Cascadia Code",
+    "terminal.integrated.fontFamily": "CaskaydiaCove Nerd Font",
 }

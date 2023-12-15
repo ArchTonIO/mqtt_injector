@@ -8,6 +8,7 @@ from pins_declarations import Pins
 from rotary.rotary_irq_pico import RotaryIRQ
 import sd_card.sdcard
 
+
 OLED_I2C = I2C(
     0,
     scl=Pin(Pins.OLED_SCL),
@@ -88,7 +89,7 @@ class HardwareManager:
         initial_text: str,
         exit_text: str,
         abort_tex: str
-    ) -> str or None:
+    ) -> str | None:
         """
         Write a string from the i2c keyboard connected to the device,
         the string is displayed on the oled while the user is
@@ -134,9 +135,9 @@ class HardwareManager:
                 return word
             elif char == ESC:
                 self.show_msg(abort_tex)
-                return None
+                return
             sleep_ms(5)
-        return None
+        return
 
     def show_msg(self, msg: str) -> None:
         """
@@ -170,19 +171,37 @@ class HardwareManager:
         This method is used to show the startup sequence.
         It is called when the device is powered on.
         """
-        for i in range(11):
-            self.set_led_bar(i)
-            sleep_ms(100)
         self.set_led_bar(0)
         self.oled.fill(0)
-        self.oled.text("mqtt_injector", 12, 12)
         self.oled.text("[", 0, 32)
         self.oled.text("]", 120, 32)
         self.oled.show()
+        arrow_body = ""
+        arrow_head = ">"
+        percentage = 0
         for i in range(14):
-            self.oled.text("\u25AF", 8+i*8, 32)
+            if i < 10:
+                self.set_led_bar(i)
+            else:
+                self.set_led_bar(10)
+            arrow_head_position = 8 + i * 8
+            self.oled.fill_rect(8, 32, 112, 8, 0)
+            self.oled.text(arrow_body, 8, 32)
+            self.oled.text(arrow_head, arrow_head_position, 32)
+            self.oled.fill_rect(56, 48, 16, 8, 0)
+            self.oled.text(f"{percentage}%", 56, 48)
+            percentage += 7
             self.oled.show()
             sleep_ms(50)
+            arrow_body = f"{arrow_body}="
+        self.oled.fill(0)
+        self.oled.text("mqtt_injector", 12, 12)
+        self.oled.text("v0.1", 12, 24)
+        self.oled.show()
+        self.set_led_bar(0)
+        sleep_ms(2000)
+        self.oled.fill(0)
+        self.oled.show()
 
     def hardware_check(self):
         """Check if all the hardware is connected and working"""

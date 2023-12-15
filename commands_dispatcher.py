@@ -25,12 +25,13 @@ class CommandsDispatcher:
     """
     def __init__(self, h_man: HardwareManager) -> None:
         self.wlan_manager = WlanManager(h_man)
-        self.ble_manager = BleManager()
+        # self.ble_manager = BleManager()
         self.mqtt_manager = MqttManager()
         self.sd_manager = SdManager(h_man)
         self.config_manager = ConfigManager()
         self.commands = {}
         self._bind_commands()
+        self.command_output_to_display = {}
 
     def _bind_commands(self) -> None:
         """ Bind the commands to the right manager. """
@@ -38,9 +39,9 @@ class CommandsDispatcher:
             ("B0", 0): self.wlan_manager.scan_networks,
             ("B0", 1): self.wlan_manager.status,
             ("B0", 2): self.wlan_manager.connect,
-            ("C0", 0): self.ble_manager.status,
-            ("C0", 1): self.ble_manager.scan,
-            ("C0", 2): self.ble_manager.connect,
+            # ("C0", 0): self.ble_manager.status,
+            # ("C0", 1): self.ble_manager.scan,
+            # ("C0", 2): self.ble_manager.connect,
             ("D0", 0): self.mqtt_manager.fast_publish,
             ("D0", 1): self.mqtt_manager.connect,
             ("D0", 2): self.mqtt_manager.create_connection,
@@ -85,18 +86,23 @@ class CommandsDispatcher:
             ("F0", 9): self.config_manager.get_available_flash,
         }
 
-    def dispatch_command(self, page_uid: int, cursor_position: int) -> None:
+    def dispatch(self, page_uid: str, cursor_position: int) -> None:
         """
         Dispatch the command to the corresponding manager.
 
         Parameters
         ----------
-        page_uid : the actual page uid.
-        cursor_position : the actual cursor position
+        page_uid : str, the actual page uid.
+        cursor_position : int, the actual cursor position
         (given by the rotary encoder).
         """
-        if isinstance(self.commands[(page_uid, cursor_position)], tuple):
-            arg = self.commands[(page_uid, cursor_position)][1]
-            self.commands[(page_uid, cursor_position)][0](arg)
-            return
-        self.commands[(page_uid, cursor_position)]()
+        command_value = self.commands.get((page_uid, cursor_position))
+        if command_value is None:
+            print(
+                f"Command not found for page_uid={page_uid}, cursor_position={cursor_position}"
+            )
+        elif isinstance(command_value, tuple):
+            function, arg = command_value
+            return function(arg)
+        else:
+            return command_value()

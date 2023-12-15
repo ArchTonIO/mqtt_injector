@@ -6,6 +6,7 @@ from machine import Pin
 from ssd1306 import SSD1306_I2C
 
 from commands_dispatcher import CommandsDispatcher
+import logger
 from page import Page, DataPage
 from rotary. rotary_irq_pico import RotaryIRQ
 
@@ -33,20 +34,18 @@ class PagesManager:
         self.oled = oled
         self.commands_dispatcher = commands_dispatcher
         self.pages = {}
-        self.target_page = None
+        self.target_page: Page =  None
         self.back_positions = []
         self.last_encoder_value = 0
 
-    def build_menu_from_json(self, json_file: str) -> None:
+    def build_menu_from_dict(self, menu: dict) -> None:
         """
         Build the device menu by parsing the pages json.
 
         Parameters
         ----------
-        json_file : the json file path containing the pages.
+        menu : the menu dict.
         """
-        with open(json_file, "r", encoding="UTF-8") as file:
-            menu = json.load(file)
         ordered_keys = self._order_menu_keys(menu)
         for key in ordered_keys:
             entries = self._parse_entries(menu[key].keys(), menu[key])
@@ -64,15 +63,19 @@ class PagesManager:
             self.back_positions.append(
                 (menu[key]["__page_uid"], len(entries)-1))
 
-    def _order_menu_keys(self, menu) -> list:
+    def _order_menu_keys(self, menu: dict) -> list:
         """
         Since the json parser doesn't keep the order of the keys,
         this function is used to order the keys by parsing order.
+
+        Parameters
+        ----------
+        menu : the menu dict.
         """
         ordered_keys = []
         last_parsing_order = 0
         while len(ordered_keys) < len(list(menu.keys())):
-            for key in menu.keys():
+            for key in menu:
                 actual_parsing_order = int(menu[key]["__parsing_order"])
                 if actual_parsing_order - last_parsing_order != 1:
                     continue
@@ -83,6 +86,15 @@ class PagesManager:
     def _parse_entries(self, keys: list, page: dict) -> list:
         """
         Parse in an ordered way the entries of the menu.
+
+        Parameters
+        ----------
+        keys : the keys of the page dict.
+        page : the page dict.
+
+        Returns
+        -------
+        list : the ordered entries list.
         """
         entries = [(int(key), page[key]) for key in keys if "__" not in key]
         sorted_entries = sorted(entries, key=lambda x: x[0])
@@ -111,10 +123,15 @@ class PagesManager:
         self.pages[page_uid].parent = parent
         self.pages[page_uid].childs = childs
 
-    def _switch_page(self, current_page: str, selected_option: int) -> None:
+    def _switch_page(self, current_page: Page, selected_option: int) -> None:
         """
         This function is used to switch the current page
         to the target page (from parent to child or viceversa).
+
+        Parameters
+        ----------
+        current_page : the page currently displayed.
+        selected_option : the selected option index of the current page.
         """
         if (current_page.uid, selected_option) in self.back_positions:
             self.target_page = self.pages[current_page.parent]
@@ -128,15 +145,17 @@ class PagesManager:
     def display_data_page(self, data: list, persistence: int = 3) -> None:
         """
         This function is used to display a data page,
-        which is a page that displays a bunch of string without any cursor,
+        which is a page that displays a bunch of strings without any cursor,
         after the specified amount of time the page is replaced by the
         previous one.
-        - Params:
-            - data: the data to display (a list of strings).
-            - persistence: the time in seconds the page will be displayed
-                before destroying it.
+
+        Parameters
+        ----------
+        data : the data to display (a list of strings).
+        persistence : the time in seconds the page will be displayed
+        before destroying it.
         """
-        data_page = DataPage(data)
+        data_page = DataPage(data, self.oled)
         data_page.to_oled()
         sleep(persistence)
         self.target_page.to_oled()
@@ -154,6 +173,10 @@ class PagesManager:
         self.target_page = self.pages["A0"]
         self.encoder.max_val = len(self.target_page.options) - 1
         self.target_page.to_oled()
+        logger.log(
+            "[PAGES MANAGER]: "
+            f"the page {self.target_page.uid} has been displayed"
+        )
 
     def _loop(self) -> None:
         """ Loop the menu. """
@@ -161,17 +184,21 @@ class PagesManager:
             self.last_encoder_value = self.encoder.value()
             self.target_page.cursor_position = self.encoder.value()
             self.target_page.to_oled()
+            logger.log(
+                "[PAGES MANAGER]: "
+                f"the page {self.target_page.uid} has been displayed"
+            )
         if self.select_button.value() == 0:
             self._perform_action()
 
     def _perform_action(self) -> None:
         """
         Perform one of the two actions:
-            - switch page
-            - excecute command
-        This is decided by the presence of childs in the target page
+        - : switch page
+        - : excecute command
+        This is choosen by the presence of childs in the target page
         and by the presence of the target page in the back_positions list,
-        it is given that if the target page has no childs, it has to
+        it is given that if the target page has no childs, it must
         excecute a command.
         """
         if (
@@ -188,24 +215,35 @@ class PagesManager:
         sleep(0.2)
 
     def _excecute_command(self, target_page, encoder_value: int) -> None:
-        """ Excecute a command. """
-        command = target_page.options[encoder_value]
-        return_value = self.commands_dispatcher.dispatch(command)
+        """
+        Excecute a command.
+
+        Parameters
+        ----------
+        target_page : the target page.
+        encoder_value : the encoder value.
+        """
+        return_value = self.commands_dispatcher.dispatch(
+            page_uid=target_page.uid,
+            cursor_position=encoder_value
+        )
+        print(return_value)
         self._create_pages_from_command_return_value(return_value)
 
     def _create_pages_from_command_return_value(self, return_value) -> None:
         """
         Create pages from the return value of the command.
         The return value can be a dict or a list.
-        - If it is a dict, it means that the command has created a page
-            and the page has to be added to the menu.
-        - If it is a list, it means that the command has to display a
-            data page.
+        - : If it is a dict, it means that the command has created a page
+        and the page has to be added to the menu.
+        - : If it is a list, it means that the command has to display a
+        data page.
         """
-        if isinstance(return_value(dict)):
+        if isinstance(return_value, dict):
+            return_value["entries"].append("back")
             self._add_page(
                 page_uid=return_value["page_uid"],
-                entries=return_value["entries"].append("back"),
+                entries=return_value["entries"],
                 parent=return_value["parent"],
                 childs=return_value["childs"],
                 cursor=return_value["cursor"],
@@ -215,13 +253,31 @@ class PagesManager:
                 ]
             )
             self.target_page = self.pages[return_value["page_uid"]]
+            self.back_positions.append(
+                (return_value["page_uid"], len(return_value["entries"])-1)
+            )
             self.encoder.max_val = len(self.target_page.options) - 1
             self.target_page.to_oled()
         if isinstance(return_value, list):
             self.display_data_page(return_value)
 
-    def run(self) -> None:
+    def run(self, recovery_from_exceptions = True) -> None:
         """ Start the menu execution. """
         self._setup()
         while True:
-            self._loop()
+            try:
+                self._loop()
+            except Exception as e:
+                if not recovery_from_exceptions:
+                    raise e
+                logger.log(
+                    "[PAGES MANAGER]: "
+                    f"an exception has been raised: {e}"
+                )
+                self.display_data_page(
+                    [
+                        "__ERROR__", 
+                        "restarting..."
+                    ]
+                )
+                self.run(recovery_from_exceptions)

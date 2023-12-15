@@ -27,8 +27,8 @@ class Page:
     parent : the parent page id
     childs : the child pages ids
     _lines  : the page lines
-
     """
+
     def __init__(self, oled: SSD1306_I2C):
         self.oled = oled
         self.uid = ""
@@ -40,7 +40,28 @@ class Page:
         self.childs = {}
         self._lines = []
 
-    def build_page(self, cursors_at_screen_border=False) -> None:
+    @property
+    def lines(self) -> list:
+        """
+        Get the page lines.
+        """
+        return self._lines
+
+    @lines.setter
+    def lines(self, lines: list) -> None:
+        """
+        Set the page lines.
+        """
+        self._lines = lines
+
+    @lines.deleter
+    def line(self) -> None:
+        """
+        Delete the page lines.
+        """
+        del self._lines
+
+    def build_page(self, cursors_at_screen_border: bool = False) -> None:
         """
         Build the page.
         Building the page means to add the cursor and spaces
@@ -48,20 +69,21 @@ class Page:
         Page lines differs from options lines cause they contains
         the cursor and the spaces.
 
-        Params :
-            - cursors_at_screen_border
-                - True:
-                    ___________________
-                    |     option_0    |
-                    | >   option_1  < |
-                    |     option_2    |
-                    |_________________|
-                - False:
-                    ___________________
-                    |     option_0    |
-                    |    >option_1<   |
-                    |     option_2    |
-                    |_________________|
+        Parameters
+        ----------
+        cursors_at_screen_border : bool
+        - : True:
+            ___________________
+            |     option_0    |
+            | >   option_1  < |
+            |     option_2    |
+            |_________________|
+        - : False:
+            ___________________
+            |     option_0    |
+            |    >option_1<   |
+            |     option_2    |
+            |_________________|
         """
         self._check_back_position()
         self._lines = [None]*len(self.options)
@@ -98,7 +120,12 @@ class Page:
                 " characters"
             )
 
-    def _build_line_with_cursor(self, option, cursors_at_screen_border, i):
+    def _build_line_with_cursor(
+        self,
+        option: str,
+        cursors_at_screen_border: bool,
+        i: int
+    ) -> None:
         """
         Build a line with the cursor.
         """
@@ -119,11 +146,16 @@ class Page:
             return
         self._populate_line_with_cursor_at_screen_border(option, spaces, i)
 
-    def _populate_line_witch_adjacent_cursor(self, option, spaces, i):
+    def _populate_line_witch_adjacent_cursor(
+        self,
+        option: str,
+        spaces: str,
+        i: int
+    ) -> None:
         """
         Populate a line with the cursor adjacent to the option.
         """
-        self._lines[i] = (
+        self.lines[i] = (
             spaces
             + self.cursor
             + option
@@ -131,11 +163,16 @@ class Page:
             + spaces
         )
 
-    def _populate_line_with_cursor_at_screen_border(self, option, spaces, i):
+    def _populate_line_with_cursor_at_screen_border(
+        self,
+        option: str,
+        spaces: str,
+        i: int
+    ) -> None:
         """
         Populate a line with the cursor at the screen border.
         """
-        self._lines[i] = (
+        self.lines[i] = (
             self.cursor
             + spaces
             + option
@@ -143,20 +180,20 @@ class Page:
             + self.right_cursor
         )
 
-    def _build_line_with_no_cursor(self, option, i):
+    def _build_line_with_no_cursor(self, option: str, i: int) -> None:
         """
         This method is used to build a line with no cursor.
         """
         num_spaces = int((MAX_CHARS_PER_LINE_ON_OLED - len(option)) / 2)
         spaces = " " * num_spaces
-        self._lines[i] = spaces + self.options[i] + spaces
+        self.lines[i] = spaces + self.options[i] + spaces
 
     def print_page(self) -> None:
         """
         Print the page to the console.
         """
         self.build_page()
-        for line in self._lines:
+        for line in self.lines:
             print(line)
 
     def to_oled(

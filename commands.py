@@ -26,7 +26,7 @@ class WlanManager:
     def __init__(self, hardware_manager: HardwareManager) -> None:
         self.wlan = network.WLAN(network.STA_IF)
         self.wlan.active(True)
-        self.scan_called = bool()
+        self.scan_called = False
         self.saved_ssids = []
         self.saved_passwords = []
         self.hardware_manager = hardware_manager
@@ -42,10 +42,11 @@ class WlanManager:
         The parent here is hardcoded to "B0" because this is the
         uid of the wlan page in the pages_manager module.
         """
-        ssid, rssi = self._scan()
+        data = self._scan()
+        ssid = data["ssids"]
+        rssi = data["rssi"]
         page_uid = str(randint(10, 100))
         return (
-            True,
             {
                 "page_uid": page_uid,
                 "entries": [
@@ -132,10 +133,11 @@ class WlanManager:
 class BleManager:
     """ Manage the device bluetooth connection. """
     def __init__(self) -> None:
-        self.ble = None
-        self.ble.active(True)
-        self.scan_called = bool()
-        self.saved_addresses = []
+        # self.ble = None
+        # self.ble.active(True)
+        # self.scan_called = bool()
+        # self.saved_addresses = []
+        raise NotImplementedError
 
     def scan(self) -> dict:
         """ Scan for bluetooth devices. """
@@ -169,7 +171,7 @@ class MqttManager:
     and the messages to publish.
     """
     def __init__(self) -> None:
-        self.mqtt_client = None
+        self.mqtt_client: MQTTClient
         self.client_name = ""
         self.broker_ip = ""
         self.keepalive = 0
@@ -425,7 +427,7 @@ class ConfigManager:
         with open("config.json", "w", encoding="utf-8") as config_file:
             json.dump(self.config, config_file)
 
-    def get_available_sram(self) -> int:
+    def get_available_sram(self) -> str:
         """
         Get the available sram.
 
@@ -435,7 +437,7 @@ class ConfigManager:
         """
         return f"{int(gc.mem_alloc()/1024)} KB/264 KB"
 
-    def get_available_flash(self) -> int:
+    def get_available_flash(self) -> dict:
         """
         Get the available flash memory.
 
@@ -446,4 +448,16 @@ class ConfigManager:
         fs_stats = uos.statvfs("/")
         total_flash = fs_stats[0] * fs_stats[2]
         free_flash = fs_stats[0] * fs_stats[3]
-        return f"{int(free_flash/1024)} KB/{int(total_flash/1024)} KB"
+        return(
+            {
+                "page_uid": "Y0",
+                "entries": [
+                    f"{int(free_flash/1024)} KB/{int(total_flash/1024)} KB",
+                ],
+                "parent": "F0",
+                "childs": {},
+                "cursor": ">",
+                "right_cursor": "<",
+                "cursor_default_position": 0
+            }
+        )
