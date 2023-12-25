@@ -11,6 +11,41 @@ from umqtt.simple import MQTTClient
 from hardware_manager import HardwareManager
 
 
+def create_response_page(func):
+    """
+    Decorator to create the response page.
+
+    Parameters
+    ----------
+    func : the function to decorate.
+
+    Returns
+    -------
+    func : the decorated function.
+    """
+    def wrapper(*args, **kwargs):
+        """
+        Create the response page.
+
+        Returns
+        -------
+        dict : a dictionary compliant with the pages_manager module to
+        build the page.
+        """
+        entries, parent = func(*args, **kwargs)
+        return (
+            {
+                "page_uid": str(randint(10, 99)),
+                "entries": entries,
+                "parent": parent,
+                "childs": {},
+                "cursor": ">",
+                "right_cursor": "<",
+                "cursor_default_position": 0
+            }
+        )
+    return wrapper
+
 class WlanManager:
     """
     Manage the wireless connection of the device.
@@ -31,7 +66,8 @@ class WlanManager:
         self.saved_passwords = []
         self.hardware_manager = hardware_manager
 
-    def scan_networks(self) -> dict:
+    @create_response_page
+    def scan_networks(self) -> tuple:
         """
         Scan the wireless networks.
 
@@ -45,19 +81,11 @@ class WlanManager:
         data = self._scan()
         ssid = data["ssids"]
         rssi = data["rssi"]
-        page_uid = str(randint(10, 100))
         return (
-            {
-                "page_uid": page_uid,
-                "entries": [
-                    f"{ssid[:8]} {rssi}" for ssid, rssi in zip(ssid, rssi)
-                ],
-                "parent": "B0",
-                "childs": {},
-                "cursor": ">",
-                "right_cursor": "<",
-                "cursor_default_position": 0
-            }
+            [
+                f"{ssid[:8]} {rssi}" for ssid, rssi in zip(ssid, rssi)
+            ],
+            "B0"
         )
 
     def _scan(self) -> dict:
@@ -89,7 +117,8 @@ class WlanManager:
             "rssi": rssi_list,
         }
 
-    def connect(self, ssid: str, password: str) -> bool:
+    @create_response_page
+    def connect(self, ssid: str, password: str) -> tuple:
         """
         Connect to a wireless network.
 
@@ -103,11 +132,19 @@ class WlanManager:
         bool : True if the connection is successful, False otherwise.
         """
         self.wlan.connect(ssid, password)
-        return self.wlan.isconnected()
+        return (
+            [str(self.wlan.isconnected())],
+            "B0"
+        )
 
-    def disconnect(self) -> None:
+    @create_response_page
+    def disconnect(self) -> tuple:
         """ Disconnect from the wireless network. """
         self.wlan.disconnect()
+        return (
+            [str(self.wlan.isconnected())],
+            "B0"
+        )
 
     def status(self) -> dict:
         """
@@ -185,7 +222,8 @@ class MqttManager:
         """
         print(topic, msg)
 
-    def create_connection(self) -> None:
+    @create_response_page
+    def create_connection(self) -> tuple:
         """
         Create the connection with the parameters specified at init time.
         """
@@ -197,20 +235,35 @@ class MqttManager:
         self.mqtt_client.set_callback(
             self.subscribe_callback
         )
+        return (
+            ["connection created"],
+            "D0"
+        )
 
-    def connect(self) -> None:
+
+    @create_response_page
+    def connect(self) -> tuple:
         """
         Connect to the broker.
         """
         self.mqtt_client.connect()
+        return (
+            [str(self.mqtt_client.isconnected())],
+            "D0"
+        )
 
-    def status(self) -> bool:
+    @create_response_page
+    def status(self) -> tuple:
         """
         Return the status of the connection.
         """
-        return self.mqtt_client.isconnected()
+        return(
+            [str(self.mqtt_client.isconnected())],
+            "D0"
+        )
 
-    def subscribe(self, topic: str) -> None:
+    @create_response_page
+    def subscribe(self, topic: str) -> tuple:
         """
         Subscribe to a topic.
 
@@ -219,8 +272,13 @@ class MqttManager:
         topic : the topic to subscribe to.
         """
         self.mqtt_client.subscribe(topic)
+        return (
+            [f"subscribed to {topic}"],
+            "D0"
+        )
 
-    def publish(self, topic: str, msg: str) -> None:
+    @create_response_page
+    def publish(self, topic: str, msg: str) -> tuple:
         """
         Publish a message to a topic.
 
@@ -230,8 +288,12 @@ class MqttManager:
         msg : the message to publish.
         """
         self.mqtt_client.publish(topic, msg)
+        return (
+            [f"published to {topic}"],
+            "D0"
+        )
 
-    def check_messages_on_broker(self) -> dict:
+    def check_messages_on_broker(self) -> None:
         """
         Check for messages on the broker.
 
@@ -241,7 +303,8 @@ class MqttManager:
         """
         self.mqtt_client.check_msg()
 
-    def fast_publish(self, key: str) -> None:
+    @create_response_page
+    def fast_publish(self, key: str) -> tuple:
         """
         Publish a message to a topic.
 
@@ -252,6 +315,10 @@ class MqttManager:
         self.publish(
             self.fast_publish_topic_msg[key][0],
             self.fast_publish_topic_msg[key][1]
+        )
+        return (
+            [f"published to {self.fast_publish_topic_msg[key][0]}"],
+            "D0"
         )
 
 
@@ -427,7 +494,8 @@ class ConfigManager:
         with open("config.json", "w", encoding="utf-8") as config_file:
             json.dump(self.config, config_file)
 
-    def get_available_sram(self) -> str:
+    @create_response_page
+    def get_available_sram(self) -> tuple:
         """
         Get the available sram.
 
@@ -435,9 +503,13 @@ class ConfigManager:
         -------
         int : the available sram.
         """
-        return f"{int(gc.mem_alloc()/1024)} KB/264 KB"
+        return(
+            [f"{int(gc.mem_alloc()/1024)} KB/264 KB"],
+            "F0",
+        )
 
-    def get_available_flash(self) -> dict:
+    @create_response_page
+    def get_available_flash(self) -> tuple:
         """
         Get the available flash memory.
 
@@ -449,15 +521,6 @@ class ConfigManager:
         total_flash = fs_stats[0] * fs_stats[2]
         free_flash = fs_stats[0] * fs_stats[3]
         return(
-            {
-                "page_uid": "Y0",
-                "entries": [
-                    f"{int(free_flash/1024)} KB/{int(total_flash/1024)} KB",
-                ],
-                "parent": "F0",
-                "childs": {},
-                "cursor": ">",
-                "right_cursor": "<",
-                "cursor_default_position": 0
-            }
+            [f"{int(free_flash/1024)} KB/{int(total_flash/1024)} KB"],
+            "F0",
         )
