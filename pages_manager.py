@@ -7,7 +7,7 @@ from ssd1306 import SSD1306_I2C
 
 from commands_dispatcher import CommandsDispatcher
 import logger
-from page import Page, DataPage
+from page import Page
 from rotary. rotary_irq_pico import RotaryIRQ
 
 
@@ -142,24 +142,6 @@ class PagesManager:
             ]
         ]
 
-    def display_data_page(self, data: list, persistence: int = 3) -> None:
-        """
-        This function is used to display a data page,
-        which is a page that displays a bunch of strings without any cursor,
-        after the specified amount of time the page is replaced by the
-        previous one.
-
-        Parameters
-        ----------
-        data : the data to display (a list of strings).
-        persistence : the time in seconds the page will be displayed
-        before destroying it.
-        """
-        data_page = DataPage(data, self.oled)
-        data_page.to_oled()
-        sleep(persistence)
-        self.target_page.to_oled()
-
     def destroy_last_page(self) -> None:
         """
         This method is used to destroy the last page of the menu.
@@ -170,13 +152,9 @@ class PagesManager:
     def _setup(self) -> None:
         """ Setup the first page to be displayed on the menu. """
         self.last_encoder_value = self.encoder.value()
-        self.target_page = self.pages["A0"]
+        self.target_page = self.pages["r7jfSJReVmo5KXgS"]
         self.encoder.max_val = len(self.target_page.options) - 1
         self.target_page.to_oled()
-        logger.log(
-            "[PAGES MANAGER]: "
-            f"the page {self.target_page.uid} has been displayed"
-        )
 
     def _loop(self) -> None:
         """ Loop the menu. """
@@ -184,10 +162,6 @@ class PagesManager:
             self.last_encoder_value = self.encoder.value()
             self.target_page.cursor_position = self.encoder.value()
             self.target_page.to_oled()
-            logger.log(
-                "[PAGES MANAGER]: "
-                f"the page {self.target_page.uid} has been displayed"
-            )
         if self.select_button.value() == 0:
             self._perform_action()
 
@@ -205,7 +179,7 @@ class PagesManager:
             (
                 self.target_page.uid, self.encoder.value()
             ) not in self.back_positions
-            and self.target_page.childs == {}
+            and self.target_page.childs.get(str(self.encoder.value())) is None
         ):
             self._excecute_command(self.target_page, self.encoder.value())
             return
@@ -223,11 +197,16 @@ class PagesManager:
         target_page : the target page.
         encoder_value : the encoder value.
         """
+        try:
+            repr_command = target_page.options[encoder_value]
+        except IndexError:
+            return
         return_value = self.commands_dispatcher.dispatch(
             page_uid=target_page.uid,
-            cursor_position=encoder_value
+            repr_command=repr_command,
+            args=None
         )
-        print(return_value)
+        logger.log(str(return_value))
         self._create_pages_from_command_return_value(return_value)
 
     def _create_pages_from_command_return_value(self, return_value) -> None:
@@ -240,7 +219,6 @@ class PagesManager:
         data page.
         """
         if isinstance(return_value, dict):
-            return_value["entries"].append("back")
             self._add_page(
                 page_uid=return_value["page_uid"],
                 entries=return_value["entries"],
@@ -258,8 +236,6 @@ class PagesManager:
             )
             self.encoder.max_val = len(self.target_page.options) - 1
             self.target_page.to_oled()
-        if isinstance(return_value, list):
-            self.display_data_page(return_value)
 
     def run(self, recovery_from_exceptions = True) -> None:
         """ Start the menu execution. """
@@ -273,11 +249,5 @@ class PagesManager:
                 logger.log(
                     "[PAGES MANAGER]: "
                     f"an exception has been raised: {e}"
-                )
-                self.display_data_page(
-                    [
-                        "__ERROR__", 
-                        "restarting..."
-                    ]
                 )
                 self.run(recovery_from_exceptions)

@@ -9,18 +9,18 @@
         "4" : "config",
         "5": "screen off",
         "__parsing_order": "1", 
-        "__page_uid": "A0",
+        "__page_uid": "r7jfSJReVmo5KXgS",
         "__cursor": ">",
         "__right_cursor": "<",
         "__cursor_default_position": "0",
         "__parent": "none",
         "__childs":
         {
-            "0": "B0",
-            "1": "C0",
-            "2": "D0",
-            "3": "E0",
-            "4": "F0"
+            "0": "ebu9n0VQjmh1bn3v",
+            "1": "EIUHzG2svyHIRw2F",
+            "2": "Y9OQNRBTclzzFGtU",
+            "3": "3piowGrCWbJkB9Jo",
+            "4": "gv5qU62isrkomZHr"
         }
     },
     "wlan tools":
@@ -30,11 +30,11 @@
         "2": "wlan connect",
         "3": "back",
         "__parsing_order": "2",
-        "__page_uid": "B0",
+        "__page_uid": "ebu9n0VQjmh1bn3v",
         "__cursor": ">",
         "__right_cursor": "<",
         "__cursor_default_position": "0",
-        "__parent": "A0",
+        "__parent": "r7jfSJReVmo5KXgS",
         "__childs": {}
     },
     "ble tools":
@@ -44,29 +44,29 @@
         "2": "ble connect",
         "3": "back",
         "__parsing_order": "3",
-        "__page_uid": "C0",
+        "__page_uid": "EIUHzG2svyHIRw2F",
         "__cursor": ">",
         "__right_cursor": "<",
         "__cursor_default_position": "0",
-        "__parent": "A0",
+        "__parent": "r7jfSJReVmo5KXgS",
         "__childs": {}
     },
     "mqtt tools":
     {
         "0": "fast publish",
         "1": "fast connect",
-        "2": "mqtt set_conn.",
+        "2": "mqtt set conn.",
         "3": "mqtt connect",
         "4": "mqtt status",
         "5": "mqtt subscribe",
         "6": "mqtt publish",
         "7": "back",
         "__parsing_order": "4",
-        "__page_uid": "D0",
+        "__page_uid": "Y9OQNRBTclzzFGtU",
         "__cursor": ">",
         "__right_cursor": "<",
         "__cursor_default_position": "0",
-        "__parent": "A0",
+        "__parent": "r7jfSJReVmo5KXgS",
         "__childs": {}
     },
     "sd card tools":
@@ -74,16 +74,16 @@
         "0": "mount card",
         "1": "umount card",
         "2": "list files",
-        "3": "format_card",
+        "3": "format card",
         "4": "read log",
         "5": "excecute file",
         "6": "back",
         "__parsing_order": "5",
-        "__page_uid": "E0",
+        "__page_uid": "3piowGrCWbJkB9Jo",
         "__cursor": ">",
         "__right_cursor": "<",
         "__cursor_default_position": "0",
-        "__parent": "A0",
+        "__parent": "r7jfSJReVmo5KXgS",
         "__childs": {}
     },
     "config":
@@ -100,47 +100,58 @@
         "9": "availble flash",
         "10": "back",
         "__parsing_order": "6",
-        "__page_uid": "F0",
+        "__page_uid": "gv5qU62isrkomZHr",
         "__cursor": ">",
         "__right_cursor": "<",
         "__cursor_default_position": "0",
-        "__parent": "A0",
-        "__childs": {}
+        "__parent": "r7jfSJReVmo5KXgS",
+        "__childs": {
+            "0": "XQNEXdUhQhgH1wQh",
+            "1": "IJ3l4F1m2DCnTujK",
+            "2": "wqooY1xQNEksOOWj",
+            "3": "PSVo5xXM51bJS1J2",
+            "4": "Wn6DG1A6Us1nz0yy",
+            "5": "ECS62NPKlWiUeXAR",
+            "6": "7KbdxzpxnB10RGPQ"
+        }
     },
     "boot hw check set":
     {
         "0": "enable",
         "1": "disable",
+        "2": "back",
         "__parsing_order": "7",
-        "__page_uid": "G0",
+        "__page_uid": "XQNEXdUhQhgH1wQh",
         "__cursor": ">",
         "__right_cursor": "<",
         "__cursor_default_position": "0",
-        "__parent": "F0",
+        "__parent": "gv5qU62isrkomZHr",
         "__childs": {}
     },
     "boot animation set":
     {
         "0": "enable",
         "1": "disable",
+        "2": "back",
         "__parsing_order": "8",
-        "__page_uid": "H0",
+        "__page_uid": "IJ3l4F1m2DCnTujK",
         "__cursor": ">",
         "__right_cursor": "<",
         "__cursor_default_position": "0",
-        "__parent": "F0",
+        "__parent": "gv5qU62isrkomZHr",
         "__childs": {}
     },
     "error recovery set":
     {
         "0": "enable",
         "1": "disable",
+        "2": "back",
         "__parsing_order": "9",
-        "__page_uid": "I0",
+        "__page_uid": "wqooY1xQNEksOOWj",
         "__cursor": ">",
         "__right_cursor": "<",
         "__cursor_default_position": "0",
-        "__parent": "F0",
+        "__parent": "gv5qU62isrkomZHr",
         "__childs": {}
     },
     "led brightness set":
@@ -151,12 +162,13 @@
         "3": "3",
         "4": "4",
         "5": "5",
+        "6": "back",
         "__parsing_order": "10",
-        "__page_uid": "J0",
+        "__page_uid": "PSVo5xXM51bJS1J2",
         "__cursor": ">",
         "__right_cursor": "<",
         "__cursor_default_position": "0",
-        "__parent": "F0",
+        "__parent": "gv5qU62isrkomZHr",
         "__childs": {}
     },
     "oled brightness set":
@@ -167,12 +179,13 @@
         "3": "3",
         "4": "4",
         "5": "5",
+        "6": "back",
         "__parsing_order": "11",
-        "__page_uid": "K0",
+        "__page_uid": "Wn6DG1A6Us1nz0yy",
         "__cursor": ">",
         "__right_cursor": "<",
         "__cursor_default_position": "0",
-        "__parent": "F0",
+        "__parent": "gv5qU62isrkomZHr",
         "__childs": {}
     },
     "oled contrast set":
@@ -183,24 +196,26 @@
         "3": "3",
         "4": "4",
         "5": "5",
+        "6": "back",
         "__parsing_order": "12",
-        "__page_uid": "L0",
+        "__page_uid": "ECS62NPKlWiUeXAR",
         "__cursor": ">",
         "__right_cursor": "<",
         "__cursor_default_position": "0",
-        "__parent": "F0",
+        "__parent": "gv5qU62isrkomZHr",
         "__childs": {}
     },
     "reverse encoder set":
     {
         "0": "enable",
         "1": "disable",
+        "2": "back",
         "__parsing_order": "13",
-        "__page_uid": "M0",
+        "__page_uid": "7KbdxzpxnB10RGPQ",
         "__cursor": ">",
         "__right_cursor": "<",
         "__cursor_default_position": "0",
-        "__parent": "F0",
+        "__parent": "gv5qU62isrkomZHr",
         "__childs": {}
     }
 }

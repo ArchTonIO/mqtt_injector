@@ -7,11 +7,11 @@ from hardware_manager import HardwareManager
 import logger
 from pages_manager import PagesManager
 from settings_manager import SettingsManager
+import _thread
 
 hw_man = HardwareManager()
-#_thread.start_new_thread(hw_man.startup_sequence, ())
-#SYS_LOCK = _thread.allocate_lock()
-#SYS_LOCK.acquire()
+# _thread.start_new_thread(hw_man.startup_sequence, ())
+
 logger.init()
 SettingsManager.load_settings("settings")
 menu_pages = SettingsManager.get_settings("pages")
@@ -26,6 +26,5 @@ p_man = PagesManager(
 
 p_man.build_menu_from_dict(menu_pages)
 
-#sleep(2)
+
 p_man.run(recovery_from_exceptions=False)
-#SYS_LOCK.release()

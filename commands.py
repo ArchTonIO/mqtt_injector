@@ -2,13 +2,20 @@
 import gc
 import json
 import os
-from random import randint
+import random
 
 import network
 import uos
 from umqtt.simple import MQTTClient
 
 from hardware_manager import HardwareManager
+
+
+def generate_page_uid(length: int = 16) -> str:
+    characters = (
+        "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+    )
+    return''.join(random.choice(characters) for _ in range(length))
 
 
 def create_response_page(func):
@@ -33,9 +40,10 @@ def create_response_page(func):
         build the page.
         """
         entries, parent = func(*args, **kwargs)
+        entries.append("back")
         return (
             {
-                "page_uid": str(randint(10, 99)),
+                "page_uid": generate_page_uid(),
                 "entries": entries,
                 "parent": parent,
                 "childs": {},
@@ -45,6 +53,7 @@ def create_response_page(func):
             }
         )
     return wrapper
+
 
 class WlanManager:
     """
@@ -85,7 +94,7 @@ class WlanManager:
             [
                 f"{ssid[:8]} {rssi}" for ssid, rssi in zip(ssid, rssi)
             ],
-            "B0"
+            "ebu9n0VQjmh1bn3v"
         )
 
     def _scan(self) -> dict:
@@ -134,7 +143,7 @@ class WlanManager:
         self.wlan.connect(ssid, password)
         return (
             [str(self.wlan.isconnected())],
-            "B0"
+            "ebu9n0VQjmh1bn3v"
         )
 
     @create_response_page
@@ -143,7 +152,7 @@ class WlanManager:
         self.wlan.disconnect()
         return (
             [str(self.wlan.isconnected())],
-            "B0"
+            "ebu9n0VQjmh1bn3v"
         )
 
     def status(self) -> dict:
@@ -170,27 +179,23 @@ class WlanManager:
 class BleManager:
     """ Manage the device bluetooth connection. """
     def __init__(self) -> None:
-        # self.ble = None
-        # self.ble.active(True)
-        # self.scan_called = bool()
-        # self.saved_addresses = []
-        raise NotImplementedError
+        ...
 
     def scan(self) -> dict:
         """ Scan for bluetooth devices. """
-        raise NotImplementedError
+        ...
 
     def connect(self, address: str) -> bool:
         """ Connect to a bluetooth device. """
-        raise NotImplementedError
+        ...
 
     def disconnect(self) -> None:
         """ Disconnect from a bluetooth device. """
-        raise NotImplementedError
+        ...
 
     def status(self) -> dict:
         """ Get the status of the bluetooth connection. """
-        raise NotImplementedError
+        ...
 
 
 class MqttManager:
@@ -237,7 +242,7 @@ class MqttManager:
         )
         return (
             ["connection created"],
-            "D0"
+            "Y9OQNRBTclzzFGtU"
         )
 
 
@@ -249,7 +254,7 @@ class MqttManager:
         self.mqtt_client.connect()
         return (
             [str(self.mqtt_client.isconnected())],
-            "D0"
+            "Y9OQNRBTclzzFGtU"
         )
 
     @create_response_page
@@ -259,7 +264,7 @@ class MqttManager:
         """
         return(
             [str(self.mqtt_client.isconnected())],
-            "D0"
+            "Y9OQNRBTclzzFGtU"
         )
 
     @create_response_page
@@ -274,7 +279,7 @@ class MqttManager:
         self.mqtt_client.subscribe(topic)
         return (
             [f"subscribed to {topic}"],
-            "D0"
+            "Y9OQNRBTclzzFGtU"
         )
 
     @create_response_page
@@ -290,7 +295,7 @@ class MqttManager:
         self.mqtt_client.publish(topic, msg)
         return (
             [f"published to {topic}"],
-            "D0"
+            "Y9OQNRBTclzzFGtU"
         )
 
     def check_messages_on_broker(self) -> None:
@@ -318,7 +323,7 @@ class MqttManager:
         )
         return (
             [f"published to {self.fast_publish_topic_msg[key][0]}"],
-            "D0"
+            "Y9OQNRBTclzzFGtU"
         )
 
 
@@ -326,24 +331,28 @@ class SdManager:
     """ Manage the sd card. """
     def __init__(self, h_man: HardwareManager) -> None:
         self.sd_reader = h_man.sd_reader
+        self.parent_uid = "3piowGrCWbJkB9Jo"
 
+    @create_response_page
     def mount_card(self) -> None:
         """ Mount the sd card. """
         try:
             vfs = os.VfsFat(self.sd_reader)
             os.mount(vfs, '/sd')
-            return True
+            return ["card mounted !"], self.parent_uid
         except OSError:
-            return False
+            return ["card error !"], self.parent_uid
 
+    @create_response_page
     def unmount_card(self) -> None:
         """ Unmount the sd card. """
         try:
             os.umount('/sd')
-            return True
+            return ["card umounted !"], self.parent_uid
         except OSError:
-            return False
+            return ["card error !"], self.parent_uid
 
+    @create_response_page
     def list_sd_card_files(self) -> list:
         """
         List the files on the sd card.
@@ -352,15 +361,24 @@ class SdManager:
         -------
         list : the list of files on the sd card
         """
-        return os.listdir("/sd")
+        try:
+            files = os.listdir("/sd")
+            res = [f"found {len(files)} files:", ""]
+            res.extend(files)
+            return res, self.parent_uid
+        except OSError:
+            return ["list error !", "card mounted ?"], self.parent_uid
 
+    @create_response_page
     def format_card(self) -> None:
         """ Format the sd card. """
         try:
             os.VfsFat.mkfs(self.sd_reader)
+            return ["card formatted !"], self.parent_uid
         except OSError:
-            print("cannot format card")
+            return ["format error !"], self.parent_uid
 
+    @create_response_page
     def read_log_file(self) -> str:
         """
         Read the log file.
@@ -370,8 +388,9 @@ class SdManager:
         str : the content of the log file.
         """
         with open("/sd/log.txt", "r", encoding="utf-8") as log_file:
-            return log_file.read()
+            return [log_file.read()], self.parent_uid
 
+    @create_response_page
     def excecute_file(self, file: str) -> None:
         """
         Excecute a python file.
@@ -382,8 +401,9 @@ class SdManager:
         """
         try:
             exec(open(file, encoding="utf-8").read())
+            return ["excecution ok !"], self.parent_uid
         except OSError:
-            print("cannot excecute file")
+            return ["excecution err !"], self.parent_uid
 
 
 class ConfigManager:
@@ -505,7 +525,7 @@ class ConfigManager:
         """
         return(
             [f"{int(gc.mem_alloc()/1024)} KB/264 KB"],
-            "F0",
+            "gv5qU62isrkomZHr",
         )
 
     @create_response_page
@@ -522,5 +542,5 @@ class ConfigManager:
         free_flash = fs_stats[0] * fs_stats[3]
         return(
             [f"{int(free_flash/1024)} KB/{int(total_flash/1024)} KB"],
-            "F0",
+            "gv5qU62isrkomZHr",
         )

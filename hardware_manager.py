@@ -192,16 +192,16 @@ class HardwareManager:
             self.oled.text(f"{percentage}%", 56, 48)
             percentage += 7
             self.oled.show()
-            sleep_ms(50)
+            sleep_ms(10)
             arrow_body = f"{arrow_body}="
         self.oled.fill(0)
         self.oled.text("mqtt_injector", 12, 12)
         self.oled.text("v0.1", 12, 24)
         self.oled.show()
         self.set_led_bar(0)
-        sleep_ms(2000)
-        self.oled.fill(0)
-        self.oled.show()
+        # sleep_ms(2000)
+        # self.oled.fill(0)
+        # self.oled.show()
 
     def hardware_check(self):
         """Check if all the hardware is connected and working"""
