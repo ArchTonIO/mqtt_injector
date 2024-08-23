@@ -1,8 +1,13 @@
 """ Manage the commands of the device. """
+import _thread
 import gc
 import json
 import os
 import random
+from time import sleep_ms
+import socket
+from device_logging import Logger
+import uping
 
 import network
 import uos
@@ -10,12 +15,34 @@ from umqtt.simple import MQTTClient
 
 from hardware_manager import HardwareManager
 
+core_1_flag = True
+
+def _enable_available_sram_led_indicator(hw_man) -> None:
+    global core_1_flag
+    while core_1_flag:
+        available_sram = int(gc.mem_alloc() / 1024)
+        turned_on_leds = int((available_sram * 10) / 264)
+        hw_man.set_led_bar(turned_on_leds)
+        sleep_ms(100)
 
 def generate_page_uid(length: int = 16) -> str:
+    """ Generate a random page uid. """
     characters = (
         "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
     )
     return''.join(random.choice(characters) for _ in range(length))
+
+
+def normalize_entries_len(entries: list[str]) -> list[str]:
+    """ Normalize the length of the entries to fit the oled screen. """
+    new_entries = []
+    for entry in entries:
+        if len(entry) <= 14:
+            new_entries.append(entry)
+            continue
+        entry = [entry[i:i+14] for i in range(0, len(entry), 14)]
+        new_entries.extend(entry)
+    return new_entries
 
 
 def create_response_page(func):
@@ -39,10 +66,11 @@ def create_response_page(func):
         dict : a dictionary compliant with the pages_manager module to
         build the page.
         """
-        entries, parent = func(*args, **kwargs)
+        name, entries, parent = func(*args, **kwargs)
         entries.append("back")
         return (
             {
+                "name": name,
                 "page_uid": generate_page_uid(),
                 "entries": entries,
                 "parent": parent,
@@ -67,13 +95,45 @@ class WlanManager:
     saved_passwords : a list of the saved passwords.
     hardware_manager : an instance of the HardwareManager class.
     """
-    def __init__(self, hardware_manager: HardwareManager) -> None:
+    def __init__(
+        self,
+        hardware_manager: HardwareManager,
+        add_command_calback
+    ) -> None:
         self.wlan = network.WLAN(network.STA_IF)
         self.wlan.active(True)
         self.scan_called = False
-        self.saved_ssids = []
-        self.saved_passwords = []
+        self.actual_ssid = ""
+        self.actual_password = ""
         self.hardware_manager = hardware_manager
+        self.add_command_calback = add_command_calback
+        self.visible_networks = []
+        self.logger = Logger("WLAN_MANAGER")
+        self.wlan_page_uid = "ebu9n0VQjmh1bn3v"
+        self._connect_to_known_networks()
+
+    def _connect_to_known_networks(self) -> None:
+        """
+        Connect to the known networks.
+        """
+        data = self._scan()
+        self.visible_networks = data["ssids"]
+        self.logger.debug(f"visible networks: {self.visible_networks}")
+        try:
+            with open(
+                "/sd/networks.json", "r", encoding="utf-8"
+            ) as networks_file:
+                networks = json.load(networks_file)
+                for ssid, password in networks.items():
+                    if ssid in self.visible_networks:
+                        self.logger.debug(
+                            f"connecting to {ssid} using password {password}"
+                        )
+                        self.connect(ssid, password, save=False)
+                        break
+        except OSError:
+            self.logger.error("no networks file found !")
+
 
     @create_response_page
     def scan_networks(self) -> tuple:
@@ -84,17 +144,25 @@ class WlanManager:
         -------
         dict : a dictionary compliant with the pages_manager module to
         build the page.
-        The parent here is hardcoded to "B0" because this is the
+        The parent here is hardcoded to "ebu9n0VQjmh1bn3v" because this is the
         uid of the wlan page in the pages_manager module.
         """
         data = self._scan()
         ssid = data["ssids"]
         rssi = data["rssi"]
+        self.visible_networks = ssid
+        entries = [f"{ssid[:8]} {rssi}" for ssid, rssi in zip(ssid, rssi)]
+        [
+            self.add_command_calback(entry, self.connect, [ssid, ])
+            for entry, ssid in zip(entries, ssid)
+        ]
+        self.logger.info(f"networks scanned, found nertworks: {ssid}")
         return (
+            "wlan scan command response",
             [
                 f"{ssid[:8]} {rssi}" for ssid, rssi in zip(ssid, rssi)
             ],
-            "ebu9n0VQjmh1bn3v"
+            self.wlan_page_uid,
         )
 
     def _scan(self) -> dict:
@@ -127,7 +195,12 @@ class WlanManager:
         }
 
     @create_response_page
-    def connect(self, ssid: str, password: str) -> tuple:
+    def connect(
+        self,
+        ssid: str,
+        password: str | None = None,
+        save: bool = True
+    ) -> tuple:
         """
         Connect to a wireless network.
 
@@ -140,10 +213,29 @@ class WlanManager:
         -------
         bool : True if the connection is successful, False otherwise.
         """
+        if not password:
+            password = self.hardware_manager.write_from_keyboard_to_oled(
+                "password:",
+                "ok !",
+                "aborting !"
+            )
+        if not password:
+            return (
+                "wlan connect command response",
+                ["aborted !"],
+                self.wlan_page_uid
+            )
+        self.logger.info(
+            f"connecting to network {ssid} using password {password}"
+        )
         self.wlan.connect(ssid, password)
+        self.actual_ssid = ssid
+        self.actual_password = password
+        self._save_network() if save else None
         return (
+            "wlan connect command response",
             [str(self.wlan.isconnected())],
-            "ebu9n0VQjmh1bn3v"
+            self.wlan_page_uid
         )
 
     @create_response_page
@@ -151,11 +243,13 @@ class WlanManager:
         """ Disconnect from the wireless network. """
         self.wlan.disconnect()
         return (
+            "wlan disconnect command response",
             [str(self.wlan.isconnected())],
-            "ebu9n0VQjmh1bn3v"
+            self.wlan_page_uid
         )
 
-    def status(self) -> dict:
+    @create_response_page
+    def status(self) -> tuple:
         """
         Get the status of the wireless connection.
 
@@ -170,15 +264,92 @@ class WlanManager:
                 2 : gateway
                 3 : dns server
         """
-        return {
-            "isconnected": self.wlan.isconnected(),
-            "ifconfig": self.wlan.ifconfig()
-        }
+        ifconfig = self.wlan.ifconfig()
+        return (
+                "wlan status command response",
+                [
+                    f"isconn: {self.wlan.isconnected()}",
+                    "ip:",
+                    ifconfig[0],
+                    "subnet mask:",
+                    ifconfig[1],
+                    "gateway:",
+                    ifconfig[2],
+                ],
+                self.wlan_page_uid
+        )
+    
+    def _save_network(self) -> None:
+        """
+        Save a network to the device sd.
+        """
+        with open("/sd/networks.json", "a", encoding="utf-8") as networks_file:
+            json.dump({self.actual_ssid: self.actual_password}, networks_file)
+        self.logger.info(f"network connection {self.actual_ssid} saved !")
+
+    def _scan_network(self, base_ip: str) -> list:
+        """
+        Scan the network for connected devices.
+
+        Parameters
+        ----------
+        base_ip : the base ip address of the network.
+
+        Returns
+        -------
+        list : a list of the connected devices.
+        """
+        connected_devices = []
+        self.hardware_manager.oled.fill(0)
+        self.hardware_manager.oled.text("scanning:", 0, 0)
+        rect_start = len(base_ip) + 1
+        for i in range(1, 255):
+            percent = int((i / 255) * 100)
+            self.hardware_manager.oled.fill_rect(
+                rect_start * 8, 16, (len(str(i)) + 2) * 8, 16, 0
+            )
+            self.hardware_manager.oled.fill_rect(
+                9 * 8, 0, (len(str(i)) + 2) * 8, 8, 0
+            )
+            self.hardware_manager.oled.text(f"{base_ip}.{i}", 0, 16)
+            self.hardware_manager.oled.text(f"{percent}%", 10 * 8, 0)
+            self.hardware_manager.show_progressbar(percent, 4)
+            self.hardware_manager.oled.show()
+            ip = f"{base_ip}.{i}"
+            try:
+                if uping.ping(ip):
+                    connected_devices.append(ip)
+            except OSError:
+                pass
+        self.hardware_manager.set_led_bar(0)
+        return connected_devices
+
+    @create_response_page
+    def list_devices(self) -> tuple:
+        """
+        List the devices connected to the network.
+
+        Returns
+        -------
+        dict : a dictionary compliant with the pages_manager module to
+        build the page.
+        The parent here is hardcoded to self.wlan_page_uid because this is the
+        uid of the wlan page in the pages_manager module.
+        """
+        parts = self.wlan.ifconfig()[0].split(".")
+        base_ip = '.'.join(parts[:-1])
+        devices = self._scan_network(base_ip)
+        devices.insert(0, "found devices:")
+        return (
+            "connected devices",
+            devices,
+            self.wlan_page_uid
+        )
 
 
 class BleManager:
     """ Manage the device bluetooth connection. """
-    def __init__(self) -> None:
+    def __init__(self, add_command_calback) -> None:
         ...
 
     def scan(self) -> dict:
@@ -212,13 +383,14 @@ class MqttManager:
     fast_publish_topic_msg : a dictionary containing the topics
     and the messages to publish.
     """
-    def __init__(self) -> None:
+    def __init__(self, add_command_calback) -> None:
         self.mqtt_client: MQTTClient
         self.client_name = ""
         self.broker_ip = ""
         self.keepalive = 0
         self.fast_reading_topics = []
         self.fast_publish_topic_msg = {}
+        self.add_command_calback = add_command_calback
 
     @staticmethod
     def subscribe_callback(topic: str, msg: str) -> None:
@@ -241,6 +413,7 @@ class MqttManager:
             self.subscribe_callback
         )
         return (
+            "mqtt create connection response",
             ["connection created"],
             "Y9OQNRBTclzzFGtU"
         )
@@ -253,6 +426,7 @@ class MqttManager:
         """
         self.mqtt_client.connect()
         return (
+            "mqtt connect response",
             [str(self.mqtt_client.isconnected())],
             "Y9OQNRBTclzzFGtU"
         )
@@ -263,6 +437,7 @@ class MqttManager:
         Return the status of the connection.
         """
         return(
+            "mqtt status response",
             [str(self.mqtt_client.isconnected())],
             "Y9OQNRBTclzzFGtU"
         )
@@ -278,6 +453,7 @@ class MqttManager:
         """
         self.mqtt_client.subscribe(topic)
         return (
+            "mqtt subscribe response"
             [f"subscribed to {topic}"],
             "Y9OQNRBTclzzFGtU"
         )
@@ -294,6 +470,7 @@ class MqttManager:
         """
         self.mqtt_client.publish(topic, msg)
         return (
+            "mqtt publish response",
             [f"published to {topic}"],
             "Y9OQNRBTclzzFGtU"
         )
@@ -322,6 +499,7 @@ class MqttManager:
             self.fast_publish_topic_msg[key][1]
         )
         return (
+            "mqtt fast publish response",
             [f"published to {self.fast_publish_topic_msg[key][0]}"],
             "Y9OQNRBTclzzFGtU"
         )
@@ -329,31 +507,55 @@ class MqttManager:
 
 class SdManager:
     """ Manage the sd card. """
-    def __init__(self, h_man: HardwareManager) -> None:
-        self.sd_reader = h_man.sd_reader
+    def __init__(
+        self,
+        hw_man: HardwareManager,
+        add_command_calback
+    ) -> None:
+        self.hw_man = hw_man
         self.parent_uid = "3piowGrCWbJkB9Jo"
+        self.sd_reader = None
+        self.add_command_calback = add_command_calback
+        self.logger = Logger("SD_MANAGER")
+        self.mount_card()
 
     @create_response_page
     def mount_card(self) -> None:
         """ Mount the sd card. """
         try:
+            self.hw_man.initialize_sd_reader()
+            self.sd_reader = self.hw_man.sd_reader
             vfs = os.VfsFat(self.sd_reader)
             os.mount(vfs, '/sd')
-            return ["card mounted !"], self.parent_uid
+            self.logger.info("card mounted !")
+            return (
+                "mount card response",
+                ["card mounted !"],
+                self.parent_uid
+            )
         except OSError:
-            return ["card error !"], self.parent_uid
+            self.logger.error("card error !")
+            return (
+                "mount card response",
+                ["card error !", "sd inserted ?"],
+                self.parent_uid
+            )
 
     @create_response_page
     def unmount_card(self) -> None:
         """ Unmount the sd card. """
         try:
             os.umount('/sd')
-            return ["card umounted !"], self.parent_uid
+            return (
+                "unmount card response",
+                ["card umounted !"],
+                self.parent_uid
+            )
         except OSError:
             return ["card error !"], self.parent_uid
 
     @create_response_page
-    def list_sd_card_files(self) -> list:
+    def list_card_files(self) -> list:
         """
         List the files on the sd card.
 
@@ -365,18 +567,26 @@ class SdManager:
             files = os.listdir("/sd")
             res = [f"found {len(files)} files:", ""]
             res.extend(files)
-            return res, self.parent_uid
+            return "list sd card files response", res, self.parent_uid
         except OSError:
-            return ["list error !", "card mounted ?"], self.parent_uid
+            return (
+                "list card files response",
+                ["list error !", "card mounted ?"], 
+                self.parent_uid
+            )
 
     @create_response_page
     def format_card(self) -> None:
         """ Format the sd card. """
         try:
             os.VfsFat.mkfs(self.sd_reader)
-            return ["card formatted !"], self.parent_uid
+            return (
+                "format card response",
+                ["card formatted !"],
+                self.parent_uid
+            )
         except OSError:
-            return ["format error !"], self.parent_uid
+            return "format card response", ["format error !"], self.parent_uid
 
     @create_response_page
     def read_log_file(self) -> str:
@@ -387,8 +597,13 @@ class SdManager:
         -------
         str : the content of the log file.
         """
-        with open("/sd/log.txt", "r", encoding="utf-8") as log_file:
-            return [log_file.read()], self.parent_uid
+        with open("/logs/device.log", "r", encoding="utf-8") as log_file:
+            return (
+                "read log file response",
+                normalize_entries_len(log_file.read().split("\n")),
+                self.parent_uid
+            )
+
 
     @create_response_page
     def excecute_file(self, file: str) -> None:
@@ -401,9 +616,17 @@ class SdManager:
         """
         try:
             exec(open(file, encoding="utf-8").read())
-            return ["excecution ok !"], self.parent_uid
+            return (
+                "excectue file response",
+                ["excecution ok !"],
+                self.parent_uid
+            )
         except OSError:
-            return ["excecution err !"], self.parent_uid
+            return (
+                "excectue file response",
+                ["excecution err !"],
+                self.parent_uid
+            )
 
 
 class ConfigManager:
@@ -414,7 +637,12 @@ class ConfigManager:
     ----------
     config : the configuration dictionary.
     """
-    def __init__(self) -> None:
+    def __init__(
+        self, hw_man: HardwareManager,
+        add_command_calback
+    ) -> None:
+        self.hw_man = hw_man
+        self.core_1_flag = True
         self.config = {
             "boot hardware_check": True,
             "boot animation": True,
@@ -424,6 +652,7 @@ class ConfigManager:
             "oled contrast": 3,
             "encoder_reverse": False,
         }
+        self.add_command_calback = add_command_calback
 
     def load_config(self) -> dict:
         """
@@ -514,6 +743,21 @@ class ConfigManager:
         with open("config.json", "w", encoding="utf-8") as config_file:
             json.dump(self.config, config_file)
 
+    def enable_available_sram_led_indicator(self) -> None:
+        """
+        Enable the available sram led indicator.
+        """
+        sleep_ms(200)
+        _thread.start_new_thread(_enable_available_sram_led_indicator, (self.hw_man, ))
+
+    def disable_available_sram_led_indicator(self) -> None:
+        """
+        Disable the available sram led indicator.
+        """
+        global core_1_flag
+        core_1_flag = False
+        self.hw_man.set_led_bar(0)
+
     @create_response_page
     def get_available_sram(self) -> tuple:
         """
@@ -524,6 +768,7 @@ class ConfigManager:
         int : the available sram.
         """
         return(
+            "get available sram response",
             [f"{int(gc.mem_alloc()/1024)} KB/264 KB"],
             "gv5qU62isrkomZHr",
         )
@@ -541,6 +786,7 @@ class ConfigManager:
         total_flash = fs_stats[0] * fs_stats[2]
         free_flash = fs_stats[0] * fs_stats[3]
         return(
+            "get available flash response",
             [f"{int(free_flash/1024)} KB/{int(total_flash/1024)} KB"],
             "gv5qU62isrkomZHr",
         )

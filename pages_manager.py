@@ -1,12 +1,11 @@
 """ Manage the pages of the menu. """
-import json
 from time import sleep
 
 from machine import Pin
 from ssd1306 import SSD1306_I2C
 
 from commands_dispatcher import CommandsDispatcher
-import logger
+from device_logging import Logger
 from page import Page
 from rotary. rotary_irq_pico import RotaryIRQ
 
@@ -29,12 +28,13 @@ class PagesManager:
         oled: SSD1306_I2C,
         commands_dispatcher: CommandsDispatcher
     ) -> None:
+        self.logger = Logger("PAGES_MANAGER")
         self.encoder = encoder
         self.select_button = select_button
         self.oled = oled
         self.commands_dispatcher = commands_dispatcher
         self.pages = {}
-        self.target_page: Page =  None
+        self.target_page: Page | None = None
         self.back_positions = []
         self.last_encoder_value = 0
 
@@ -50,6 +50,7 @@ class PagesManager:
         for key in ordered_keys:
             entries = self._parse_entries(menu[key].keys(), menu[key])
             self._add_page(
+                name=menu[key]["__name"],
                 page_uid=menu[key]["__page_uid"],
                 entries=entries,
                 parent=menu[key]["__parent"],
@@ -102,6 +103,7 @@ class PagesManager:
 
     def _add_page(
         self,
+        name: str,
         page_uid: int,
         entries: list,
         parent: str,
@@ -115,6 +117,7 @@ class PagesManager:
         Adding means appending to the pages list.
         """
         self.pages.update({page_uid: Page(self.oled)})
+        self.pages[page_uid].name = name
         self.pages[page_uid].uid = page_uid
         self.pages[page_uid].cursor = cursor
         self.pages[page_uid].right_cursor = right_cursor
@@ -135,12 +138,22 @@ class PagesManager:
         """
         if (current_page.uid, selected_option) in self.back_positions:
             self.target_page = self.pages[current_page.parent]
+            self.logger.debug(
+                f"switching page from {current_page.uid} to {
+                    current_page.parent
+                }"
+            )
             return
         self.target_page = self.pages[
             current_page.childs[
                 str(selected_option)
             ]
         ]
+        self.logger.debug(
+            f"switching page from {current_page.uid} to {current_page.childs[
+                str(selected_option)
+            ]}"
+        )
 
     def destroy_last_page(self) -> None:
         """
@@ -203,10 +216,13 @@ class PagesManager:
             return
         return_value = self.commands_dispatcher.dispatch(
             page_uid=target_page.uid,
-            repr_command=repr_command,
-            args=None
+            repr_command=repr_command
         )
-        logger.log(str(return_value))
+        self.logger.debug(
+            f"the command {repr_command} has returned the following page: {
+                str(return_value)
+            }"
+        )
         self._create_pages_from_command_return_value(return_value)
 
     def _create_pages_from_command_return_value(self, return_value) -> None:
@@ -220,6 +236,7 @@ class PagesManager:
         """
         if isinstance(return_value, dict):
             self._add_page(
+                name=return_value["name"],
                 page_uid=return_value["page_uid"],
                 entries=return_value["entries"],
                 parent=return_value["parent"],
@@ -246,8 +263,5 @@ class PagesManager:
             except Exception as e:
                 if not recovery_from_exceptions:
                     raise e
-                logger.log(
-                    "[PAGES MANAGER]: "
-                    f"an exception has been raised: {e}"
-                )
+                self.logger.critical(f"an exception has been raised: {e}")
                 self.run(recovery_from_exceptions)

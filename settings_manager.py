@@ -1,13 +1,15 @@
 """ Manage the settings of the device. """
-import os
 import json
+import os
 
-from logger import log
+from device_logging import Logger
+
 
 class SettingsManager:
     """ Load and read the settings of the application. """
 
     settings_dict: dict = {}
+    logger = Logger("SETTINGS_MANAGER")
 
     @staticmethod
     def isfile(path: str) -> bool:
@@ -37,7 +39,7 @@ class SettingsManager:
                 cls.isfile(f"{source_dir}/{settings_file}")
                 and file_suffix == "json"
             ):
-                log(f"[SETTINGS MANAGER]: correctly loaded {settings_file}")
+                cls.logger.info(f"correctly loaded {settings_file}")
                 with open(
                     f"{source_dir}/{settings_file}", "r", encoding="utf-8"
                 ) as current_file:
@@ -45,7 +47,9 @@ class SettingsManager:
                         current_file
                     )
             else:
-                log(f"[SETTINGS MANAGER]: cannot load {settings_file}")
+                cls.logger.warning(
+                    f"[SETTINGS MANAGER]: cannot load {settings_file}"
+                )
 
     @classmethod
     def get_settings(cls, file_name: str = "") -> dict:
@@ -64,9 +68,8 @@ class SettingsManager:
         if not file_name:
             return cls.settings_dict
         if file_name not in cls.settings_dict:
-            message = f"[SETTINGS MANAGER]: {file_name}, file not found."
-            log(message)
-            raise ValueError(message)
+            cls.logger.error(f"{file_name}, file not found.")
+            raise ValueError(f"{file_name}, file not found.")
         return cls.settings_dict[file_name]
 
     @classmethod
@@ -87,4 +90,3 @@ class SettingsManager:
                     indent=4,
                 )
         return True
-

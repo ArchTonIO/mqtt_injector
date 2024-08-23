@@ -23,12 +23,13 @@ class CommandsDispatcher:
     config_manager : an instance of the ConfigManager class.
     commands : a dict containing the commands.
     """
-    def __init__(self, h_man: HardwareManager) -> None:
-        self.wlan_manager = WlanManager(h_man)
-        self.ble_manager = BleManager()
-        self.mqtt_manager = MqttManager()
-        self.sd_manager = SdManager(h_man)
-        self.config_manager = ConfigManager()
+    def __init__(self, hw_man: HardwareManager) -> None:
+        self.hw_man = hw_man
+        self.sd_manager = SdManager(hw_man, self.add_command)
+        self.wlan_manager = WlanManager(hw_man, self.add_command)
+        self.ble_manager = BleManager(self.add_command)
+        self.mqtt_manager = MqttManager(self.add_command)
+        self.config_manager = ConfigManager(hw_man, self.add_command)
         self.commands = {}
         self._bind_commands()
         self.command_output_to_display = {}
@@ -36,9 +37,11 @@ class CommandsDispatcher:
     def _bind_commands(self) -> None:
         """ Bind the commands to the right manager. """
         self.commands = {
+            "screen off": self.hw_man.screen_off,
             "wlan scan": self.wlan_manager.scan_networks,
             "wlan status": self.wlan_manager.status,
-            "wlan connect": self.wlan_manager.connect,
+            "list devices": self.wlan_manager.list_devices,
+            "disconnect": self.wlan_manager.disconnect,
             "ble status": self.ble_manager.status,
             "ble scan": self.ble_manager.scan,
             "ble connect": self.ble_manager.connect,
@@ -51,7 +54,7 @@ class CommandsDispatcher:
             "mqtt publish": self.mqtt_manager.publish,
             "mount card": self.sd_manager.mount_card,
             "umount card": self.sd_manager.unmount_card,
-            "list files": self.sd_manager.list_sd_card_files,
+            "list files": self.sd_manager.list_card_files,
             "format card": self.sd_manager.format_card,
             "read log": self.sd_manager.read_log_file,
             "excecute file": self.sd_manager.excecute_file,
@@ -65,13 +68,25 @@ class CommandsDispatcher:
             "save to flash": self.config_manager.save_config,
             "available sram": self.config_manager.get_available_sram,
             "availble flash": self.config_manager.get_available_flash,
+            "sram leds: on": self.config_manager.enable_available_sram_led_indicator,
+            "sram leds: off": self.config_manager.disable_available_sram_led_indicator,
         }
+
+    def add_command(self, command: str, callback, args: list) -> None:
+        """
+        Add a command to the commands dict.
+
+        Parameters
+        ----------
+        command : str, the command to add.
+        callback : the callback to add.
+        """
+        self.commands[command] = (callback, args)
 
     def dispatch(
         self,
         page_uid: str,
-        repr_command: str,
-        args: list = None
+        repr_command: str
     ) -> None | dict:
         """
         Dispatch the command to the corresponding manager.
@@ -85,5 +100,8 @@ class CommandsDispatcher:
         callback = self.commands.get((repr_command))
         if callback is None:
             return
-        return callback(*args) if args else callback()
+        if isinstance(callback, tuple):
+            callback, args = callback
+            return callback(*args)
+        return callback()
 

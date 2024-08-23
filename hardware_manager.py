@@ -4,6 +4,7 @@ from time import sleep_ms
 from machine import I2C, Pin, SPI
 from ssd1306 import SSD1306_I2C
 
+from device_logging import Logger
 from pins_declarations import Pins
 from rotary.rotary_irq_pico import RotaryIRQ
 import sd_card.sdcard
@@ -55,11 +56,10 @@ class HardwareManager:
     leds_list : the list of the 10 leds of the led bar.
     """
     def __init__(self):
+        self.logger = Logger("HARDWARE_MANAGER")
         self.oled = SSD1306_I2C(OLED_WIDTH, OLED_HEIGHT, OLED_I2C)
         self.keyboard = KEYBOARD_I2C.scan()[0]
-        self.sd_reader = sd_card.sdcard.SDCard(
-            SD_READER_SPI, Pin(Pins.SD_READER_CS)
-        )
+        self.sd_reader = None
         self.encoder = RotaryIRQ(
             pin_num_clk=Pins.ENCODER_CLK,
             pin_num_dt=Pins.ENCODER_DT,
@@ -83,6 +83,15 @@ class HardwareManager:
             Pin(Pins.LED_8, Pin.OUT),
             Pin(Pins.LED_9, Pin.OUT)
         ]
+        self.set_led_bar(0)
+        self.logger.info("all hardware has been correctly initialized.")
+
+    def initialize_sd_reader(self) -> None:
+        """Initialize the sd reader."""
+        self.sd_reader = sd_card.sdcard.SDCard(
+            SD_READER_SPI, Pin(Pins.SD_READER_CS)
+        )
+        self.logger.info("sd card reader initialized.")
 
     def write_from_keyboard_to_oled(
         self,
@@ -114,7 +123,6 @@ class HardwareManager:
             c_encoded = KEYBOARD_I2C.readfrom(self.keyboard, 1)
             char = c_encoded.decode()
             if char not in (NULL, ESC, BKSP, ENTER):
-                print(c_encoded, char)
                 word += char
                 self.oled.text(char, i, CHAR_WIDTH)
                 self.oled.show()
@@ -132,6 +140,7 @@ class HardwareManager:
                 i -= CHAR_WIDTH
             elif char == ENTER:
                 self.show_msg(exit_text)
+                self.logger.debug(f"the user typed: {word}")
                 return word
             elif char == ESC:
                 self.show_msg(abort_tex)
@@ -166,42 +175,31 @@ class HardwareManager:
             else:
                 self.leds_list[i].value(0)
 
-    def startup_sequence(self) -> None:
+    def show_progressbar(self, percentage: int, row: int, char: str = "=") -> None:
         """
-        This method is used to show the startup sequence.
-        It is called when the device is powered on.
+        Show a progress bar on the oled.
+
+        Parameters
+        ----------
+        percentage : the percentage of the progress bar
+        row : the row to display the progress bar on
         """
-        self.set_led_bar(0)
-        self.oled.fill(0)
-        self.oled.text("[", 0, 32)
-        self.oled.text("]", 120, 32)
+        self.oled.fill_rect(0, row * 8, 128, 8, 0)
+        self.oled.text("[", 0, row * 8)
+        self.oled.text("]", 120, row * 8)
+        pos = 0
+        for i in range(8, ((percentage * 120) // 100) - 1, 8):
+            self.oled.text(char, i, row * 8)
+            pos = i
+        self.oled.text(">", pos + 8, row * 8)
         self.oled.show()
-        arrow_body = ""
-        arrow_head = ">"
-        percentage = 0
-        for i in range(14):
-            if i < 10:
-                self.set_led_bar(i)
-            else:
-                self.set_led_bar(10)
-            arrow_head_position = 8 + i * 8
-            self.oled.fill_rect(8, 32, 112, 8, 0)
-            self.oled.text(arrow_body, 8, 32)
-            self.oled.text(arrow_head, arrow_head_position, 32)
-            self.oled.fill_rect(56, 48, 16, 8, 0)
-            self.oled.text(f"{percentage}%", 56, 48)
-            percentage += 7
-            self.oled.show()
-            sleep_ms(10)
-            arrow_body = f"{arrow_body}="
+
+    def screen_off(self):
+        """
+        Turn off the oled display.
+        """
         self.oled.fill(0)
-        self.oled.text("mqtt_injector", 12, 12)
-        self.oled.text("v0.1", 12, 24)
         self.oled.show()
-        self.set_led_bar(0)
-        # sleep_ms(2000)
-        # self.oled.fill(0)
-        # self.oled.show()
 
     def hardware_check(self):
         """Check if all the hardware is connected and working"""
